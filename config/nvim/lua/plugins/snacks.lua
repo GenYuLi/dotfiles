@@ -37,7 +37,15 @@ return {
       end,
     },
   },
-
+  keys = {
+    {
+      "<leader>un",
+      function()
+        Snacks.notifier.hide()
+      end,
+      desc = "Dismiss All Notifications",
+    },
+  },
   init = function()
     local snacks = require("snacks")
 
