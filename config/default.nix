@@ -1,9 +1,9 @@
 {
   home = {
     system = "x86_64-linux";
-    username = "william";
-    fullname = "William Hsieh";
-    email = "williamhsieh@synology.com";
+    username = "witherslin";
+    fullname = "witherslin";
+    email = "witherslin@synology.com";
     dotDir = "dotfiles"; # path relative to $HOME, this example represents `~/dotfiles`
     wsl = false;
     gui = false;
