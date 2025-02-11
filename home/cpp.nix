@@ -1,22 +1,34 @@
 { lib, pkgs, config, dotfiles, ... }:
 let
-  dotDir = "${config.home.homeDirectory}/${dotfiles.home.dotDir}";
-  link = path: config.lib.file.mkOutOfStoreSymlink "${dotDir}/config/${path}";
+  link = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles.directory}/config/${path}";
   yamlFormat = pkgs.formats.yaml { };
+  clangdConfig = "clangd/config.yaml";
 in
 {
   home.packages = with pkgs; [
     gcc
-  ];
+    gnumake
+    ninja
+  ] ++ (pkgs.lib.optionals pkgs.stdenv.isLinux [
+    gdb
+    mold
+  ]);
 
   xdg.configFile = {
     # https://clangd.llvm.org/config.html
-    "clangd/config.yaml".source = yamlFormat.generate "config.yaml" {
+    ${clangdConfig}.source = yamlFormat.generate "config.yaml" {
       CompileFlags = {
         Add = [ "-Wall" "-Wextra" "-Wshadow" "-std=c++23" ];
         Compiler = "${pkgs.gcc}/bin/g++";
       };
     };
+  };
+
+  # https://clangd.llvm.org/config#files
+  home.activation = lib.optionalAttrs pkgs.stdenv.isDarwin {
+    linkClangdConfigPath = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      ln -sfn ${config.xdg.configHome}/clangd ${config.home.homeDirectory}/Library/Preferences/clangd
+    '';
   };
 
   home.file = {

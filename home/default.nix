@@ -1,7 +1,6 @@
 { inputs, pkgs, config, lib, dotfiles, ... }:
 let
-  dotDir = "${config.home.homeDirectory}/${dotfiles.home.dotDir}";
-  link = path: config.lib.file.mkOutOfStoreSymlink "${dotDir}/config/${path}";
+  link = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles.directory}/config/${path}";
 
   glow-without-completion = pkgs.glow.overrideAttrs
     (oldAttrs: {
@@ -24,13 +23,13 @@ in
     ./alacritty.nix
     ./cpp.nix
     inputs.nix-index-database.hmModules.nix-index
-    inputs.catppuccin.homeManagerModules.catppuccin
+    inputs.catppuccin.homeModules.catppuccin
   ];
 
   home = rec {
     inherit (import ../lib { inherit inputs; }) stateVersion;
 
-    inherit (dotfiles.home) username;
+    inherit (dotfiles) username;
 
     homeDirectory = with pkgs.stdenv;
       if isDarwin then
@@ -45,18 +44,20 @@ in
       # manage itself
       nix
 
+      # lib
+      zlib
+      iconv
+
       # basic tools
       coreutils-full
       util-linux
+      xdg-utils
       gnugrep
-      gnumake
       file
       findutils
       gawk
       less
       procps
-      zlib
-      iconv
       wget
       curl
 
@@ -64,7 +65,6 @@ in
       fd
       ripgrep
       comma
-      htop
       tldr
       dua
       just
@@ -94,6 +94,7 @@ in
       # language specific
       rustup
       go
+      uv
       poetry
       python3Full
       nixpkgs-fmt
@@ -222,6 +223,28 @@ in
     settings = {
       vim_keys = true;
     };
+  };
+
+  programs.htop = {
+    enable = true;
+    settings = {
+      cpu_count_from_one = 0;
+      screen_tabs = 1;
+      delay = 10;
+      highlight_base_name = 1;
+      highlight_megabytes = 1;
+      highlight_threads = 1;
+    } // (with config.lib.htop; leftMeters [
+      (bar "LeftCPUs2")
+      (bar "Memory")
+      (bar "Swap")
+    ]) // (with config.lib.htop; rightMeters [
+      (bar "RightCPUs2")
+      (text "Tasks")
+      (text "LoadAverage")
+      (text "DiskIO")
+      (text "Uptime")
+    ]);
   };
 
   catppuccin.glamour.enable = true;

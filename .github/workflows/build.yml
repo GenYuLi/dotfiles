@@ -9,6 +9,7 @@ on:
       - ".github/**"
       - "**.nix"
       - "flake.lock"
+      - "setup.py"
 
 jobs:
   build:
@@ -18,26 +19,24 @@ jobs:
         # https://github.com/actions/runner-images?tab=readme-ov-file#available-images
         include:
           - os: ubuntu-latest
-            target: home-manager
-            name: william
+            profile: home
           - os: ubuntu-latest
-            target: nixos-rebuild
-            name: nixos-local
+            profile: nixos
+            args: --build
           - os: macos-latest
-            target: home-manager
-            name: william-alt
+            profile: home
           - os: macos-latest
-            target: darwin-rebuild
-            name: macos-local
+            profile: darwin
+            args: --build --hostname hack-local-suffix
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Insall nix
-        uses: cachix/install-nix-action@v30
+        uses: cachix/install-nix-action@v31
         with:
-          install_url: https://releases.nixos.org/nix/nix-2.18.2/install
+          # install_url: https://releases.nixos.org/nix/nix-2.18.2/install
           extra_nix_config: |
             accept-flake-config = true
 
@@ -45,10 +44,10 @@ jobs:
         uses: DeterminateSystems/flake-checker-action@v9
 
       - name: Github actions built-in cache
-        uses: DeterminateSystems/magic-nix-cache-action@v8
+        uses: DeterminateSystems/magic-nix-cache-action@v9
 
       - name: Setup cachix
-        uses: cachix/cachix-action@v15
+        uses: cachix/cachix-action@v16
         with:
           name: williamhsieh
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
@@ -57,8 +56,12 @@ jobs:
       - name: Build target
         run: |
           set -o pipefail
-          nix run .#${{ matrix.target }} build --fallback --show-trace -v --log-format raw -- \
-          --flake .#${{ matrix.name }} > >(tee /tmp/nix-build-out.log) 2> >(tee /tmp/nix-build-err.log >&2)
+          ./setup.py --bootstrap --profile ${{ matrix.profile }} ${{ matrix.args }}
+
+      - name: show config
+        if: always()
+        run: |
+          cat ./config/default.nix
 
       - name: Output build failure
         if: failure()

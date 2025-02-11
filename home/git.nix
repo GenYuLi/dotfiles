@@ -6,8 +6,8 @@
 
   programs.git = {
     enable = true;
-    userName = dotfiles.home.fullname;
-    userEmail = dotfiles.home.email;
+    userName = dotfiles.fullname;
+    userEmail = dotfiles.email;
     aliases = {
       undo = "reset HEAD@{1}";
       lg = "log --pretty=format:'%C(red)%h %C(blue)<%an> %C(green)%cs (%cr)  %C(reset)%s %C(auto)%d' --abbrev-commit --graph";
@@ -33,19 +33,36 @@
     ];
     extraConfig = {
       init.defaultBranch = "master";
+      core = {
+        whitespace = "error";
+      };
+      url = {
+        "git@github.com" = {
+          insteadOf = "gh";
+        };
+        "git@gitlab.com" = {
+          insteadOf = "gl";
+        };
+      };
       merge = {
         tool = "diffview";
       };
       push = {
+        default = "current";
+        followTags = true;
         autoSetupRemote = true;
         useForceIfIncludes = true;
       };
-      pull.rebase = true;
+      pull = {
+        default = "current";
+        rebase = true;
+      };
       rebase = {
         autoStash = true;
         rebaseMerges = true;
         autosquash = true;
         updateRefs = true;
+        missingCommitsCheck = "warn";
       };
       mergetool = {
         prompt = "false";
