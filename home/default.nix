@@ -45,26 +45,31 @@ in
       # manage itself
       nix
 
+      # lib
+      zlib
+      iconv
+
       # basic tools
       coreutils-full
       util-linux
+      xdg-utils
       gnugrep
-      gnumake
       file
       findutils
       gawk
       less
       procps
-      zlib
-      iconv
       wget
       curl
+
+      # build tools
+      gnumake
+      ninja
 
       # useful tools
       fd
       ripgrep
       comma
-      htop
       tldr
       dua
       just
@@ -222,6 +227,28 @@ in
     settings = {
       vim_keys = true;
     };
+  };
+
+  programs.htop = {
+    enable = true;
+    settings = {
+      cpu_count_from_one = 0;
+      screen_tabs = 1;
+      delay = 10;
+      highlight_base_name = 1;
+      highlight_megabytes = 1;
+      highlight_threads = 1;
+    } // (with config.lib.htop; leftMeters [
+      (bar "LeftCPUs2")
+      (bar "Memory")
+      (bar "Swap")
+      (text "Uptime")
+    ]) // (with config.lib.htop; rightMeters [
+      (bar "RightCPUs2")
+      (text "Tasks")
+      (text "LoadAverage")
+      (text "DiskIO")
+    ]);
   };
 
   catppuccin.glamour.enable = true;

@@ -11,8 +11,6 @@ in
 
   networking.hostName = dotfiles.darwin.hostname;
 
-  # services.karabiner-elements.enable = true;
-
   users.users."${username}" = {
     description = dotfiles.home.fullname;
     home = "/Users/${username}";
@@ -39,10 +37,10 @@ in
       "raycast"
       "heptabase"
       "logi-options+"
-      "hammerspoon"
+      "mcbopomofo"
       "spotify"
       "discord"
-      "todoist"
+      "karabiner-elements"
 
       "vmware-fusion"
       "utm"
@@ -59,7 +57,7 @@ in
       fonts = [
         "Iosevka"
         "JetBrainsMono"
-        "CodeNewRoman"
+        "CommitMono"
         "Meslo"
         "FiraCode"
         "DroidSansMono"
@@ -68,17 +66,23 @@ in
   ];
   # TODO: change the font weight on mac, it's way too thick
 
+  # NOTE: some of the value are not reflected instantly
+  # check the value by 'defaults read NSGlobalDomain InitialKeyRepeat'
+  # re-login to apply config https://github.com/LnL7/nix-darwin/issues/1207
   system = {
     defaults = {
       NSGlobalDomain = {
-        # FIX: these are not working
+        # hold 'ctrl+command' to activate, additional 'option' to tile the window
         NSWindowShouldDragOnGesture = true;
-        # InitialKeyRepeat = 2;
-        # KeyRepeat = 2; # normal minimum is 2 (30 ms)
+
+        KeyRepeat = 2;
+        InitialKeyRepeat = 15;
 
         AppleInterfaceStyle = "Dark";
         NSAutomaticCapitalizationEnabled = false;
         "com.apple.keyboard.fnState" = true;
+        "com.apple.trackpad.scaling" = 2.5;
+        "com.apple.mouse.tapBehavior" = 1;
       };
       dock = {
         tilesize = 56;
@@ -93,8 +97,14 @@ in
       };
       trackpad = {
         Dragging = true;
+        Clicking = true;
+        TrackpadThreeFingerDrag = true;
+        TrackpadThreeFingerTapGesture = 2;
       };
-      finder.FXPreferredViewStyle = "clmv";
+      finder = {
+        FXPreferredViewStyle = "clmv";
+        NewWindowTarget = "Home";
+      };
       universalaccess = {
         # NOTE: require permission for alacritty: System Preferences > Security & Privacy > Privacy > Full Disk Access
         closeViewScrollWheelToggle = true;
@@ -112,6 +122,10 @@ in
     activationScripts.postActivation.text = ''
       # Disable the sound effects on boot
       sudo nvram SystemAudioVolume=" "
+
+      # set `AppleFontSmoothing` to 0
+      # ref: https://github.com/alacritty/alacritty/commit/2a676dfad837d1784ed0911d314bc263804ef4ef
+      defaults write -g AppleFontSmoothing -int 0
     '';
   };
 
