@@ -1,0 +1,30 @@
+# 安裝 zinit
+
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/zdharma-continuum/zinit/HEAD/scripts/install.sh)"
+
+
+# 新增 zshrc
+## 啟用 zinit
+source ~/.zinit/bin/zinit.zsh
+
+## 安裝插件
+zinit light zdharma-continuum/fast-syntax-highlighting
+zinit light zsh-users/zsh-autosuggestions
+zinit light zsh-users/zsh-abbr
+zinit light olets/zsh-abbr
+zinit light agherzan/zsh-autopair
+zinit light Tarrasch/zsh-bd
+#zinit light MenkeTechnologies/zsh-zsh # 這個插件有問題
+zinit light Aloxaf/fzf-tab
+zinit light jeffreytse/zsh-vi-mode
+
+## 安裝 Powerlevel10k (p10k)
+zinit ice depth=1
+zinit light romkatv/powerlevel10k
+
+## 啟動 vi 模式
+ZVM_VI_ESCAPE_BINDKEY=kj
+source ~/.zinit/plugins/jeffreytse---zsh-vi-mode/zsh-vi-mode.plugin.zsh
+
+## 載入 Powerlevel10k
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
