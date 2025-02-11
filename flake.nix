@@ -13,30 +13,26 @@
   };
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-24.11";
+      url = "github:nix-community/home-manager/release-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     darwin = {
-      url = "github:LnL7/nix-darwin/nix-darwin-24.11";
+      url = "github:LnL7/nix-darwin/nix-darwin-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     homebrew = {
       url = "github:zhaofengli/nix-homebrew";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.nix-darwin.follows = "darwin";
     };
 
     catppuccin = {
       url = "github:catppuccin/nix";
-      inputs.nixpkgs-stable.follows = "nixpkgs";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
-      inputs.home-manager-stable.follows = "home-manager";
     };
 
     git-hooks = {
@@ -57,23 +53,20 @@
 
       packages = foreachSystem (system:
         {
-          default = self.packages.${system}.home-manager;
-          inherit (inputs.home-manager.packages.${system}) home-manager;
-        } // (optionalAttrs (system == dotfiles.nixos.system) {
-          inherit (pkgsBySystem.${system}) nixos-rebuild;
-        }) // (optionalAttrs (system == dotfiles.darwin.system) {
-          inherit (inputs.darwin.packages.${system}) darwin-rebuild;
-        })
+          default =
+            if dotfiles.profile == "home" then
+              inputs.home-manager.packages.${system}.home-manager
+            else if dotfiles.profile == "darwin" then
+              inputs.darwin.packages.${system}.darwin-rebuild
+            else if dotfiles.profile == "nixos" then
+              pkgsBySystem.${system}.nixos-rebuild
+            else
+              builtins.abort "Unknown profile type: '${dotfiles.profile}'"
+          ;
+        }
       );
 
-      homeConfigurations = {
-        ${dotfiles.home.username} = mkHome {
-          inherit (dotfiles.home) system;
-        };
-        "${dotfiles.home.username}-alt" = mkHome {
-          system = builtins.elemAt (builtins.filter (s: s != dotfiles.home.system) systems) 0;
-        };
-      };
+      homeConfigurations = mkHome;
 
       nixosConfigurations = mkSystem {
         isDarwin = false;
@@ -86,20 +79,6 @@
         # ref: https://discourse.nixos.org/t/home-manager-insists-on-using-nix-profile/57708
         isDarwin = true;
       };
-
-      # Convenience output that aggregates the outputs for home, nixos, and darwin configurations.
-      # Instead of calling `nix build .#nixosConfigurations.{host}.config.system.build.toplevel`,
-      # now it's simply `nix build .#top.{host}` or `nix build .#top.{user}`
-      top =
-        let
-          nixtop = genAttrs (builtins.attrNames inputs.self.nixosConfigurations)
-            (attr: inputs.self.nixosConfigurations.${attr}.config.system.build.toplevel);
-          darwintop = genAttrs (builtins.attrNames inputs.self.darwinConfigurations)
-            (attr: inputs.self.darwinConfigurations.${attr}.system);
-          hometop = genAttrs (builtins.attrNames inputs.self.homeConfigurations)
-            (attr: inputs.self.homeConfigurations.${attr}.activationPackage);
-        in
-        nixtop // darwintop // hometop;
 
       checks = foreachSystem (system: {
         pre-commit-check = inputs.git-hooks.lib.${system}.run {

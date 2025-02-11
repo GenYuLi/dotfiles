@@ -16,8 +16,8 @@
         DISPLAY = ":0";
       });
       font = {
-        normal.family = "MesloLGLDZ Nerd Font Mono";
-        size = 14;
+        normal.family = "Maple Mono Normal NF CN";
+        size = 16.5;
       };
       window = {
         dynamic_padding = true;

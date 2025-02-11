@@ -24,15 +24,25 @@ let
       };
     }
   );
+
+  fonts = pkgs: with pkgs; [
+    maple-mono.Normal-NF-CN-unhinted
+    maple-mono.NF-CN-unhinted
+  ] ++ (with nerd-fonts; [
+    fira-code
+    jetbrains-mono
+    meslo-lg
+    commit-mono
+  ]);
 in
 {
   inherit foreachSystem pkgsBySystem dotfiles systems;
 
   stateVersion = "${builtins.elemAt (lib.splitString "-" lockfile.nodes.${input_name}.original.ref) 1}";
 
-  mkHome = { system }:
-    inputs.home-manager.lib.homeManagerConfiguration {
-      pkgs = pkgsBySystem.${system};
+  mkHome = let pkgs = pkgsBySystem.${dotfiles.system}; in {
+    ${dotfiles.username} = inputs.home-manager.lib.homeManagerConfiguration {
+      inherit pkgs;
       extraSpecialArgs = {
         inherit inputs dotfiles;
         isSystemConfig = false;
@@ -40,28 +50,29 @@ in
       modules = [
         ../home
         ./nix.nix
+        {
+          fonts.fontconfig.enable = true;
+          home.packages = fonts pkgs;
+        }
       ];
     };
+  };
 
   mkSystem = { isDarwin }:
     let
-      osConfig = ../system/${if isDarwin then "darwin" else "nixos" };
-      hmConfig = ../home;
+      pkgs = pkgsBySystem.${dotfiles.system};
 
       # NixOS vs nix-darwin functionst
       systemFunc = if isDarwin then inputs.darwin.lib.darwinSystem else inputs.nixpkgs.lib.nixosSystem;
       hmModules = if isDarwin then inputs.home-manager.darwinModules else inputs.home-manager.nixosModules;
-
-      hostSystem = if isDarwin then dotfiles.darwin else dotfiles.nixos;
-      pkgs = pkgsBySystem.${hostSystem.system};
     in
     {
-      ${hostSystem.hostname} = systemFunc
+      ${dotfiles.hostname} = systemFunc
         {
           specialArgs = { inherit inputs pkgs dotfiles; };
           modules = [
             ./nix.nix
-            osConfig
+            ../system/${dotfiles.profile}
             hmModules.home-manager
             {
               home-manager.useGlobalPkgs = true;
@@ -70,7 +81,9 @@ in
                 inherit inputs dotfiles;
                 isSystemConfig = true;
               };
-              home-manager.users.${dotfiles.home.username} = import hmConfig;
+              home-manager.users.${dotfiles.username} = import ../home;
+
+              fonts.packages = fonts pkgs;
             }
           ] ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin [
             inputs.homebrew.darwinModules.nix-homebrew

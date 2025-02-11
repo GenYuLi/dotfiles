@@ -19,7 +19,7 @@
     };
   };
 
-  networking.hostName = dotfiles.nixos.hostname;
+  networking.hostName = dotfiles.hostname;
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
   # Configure network proxy if necessary
@@ -91,14 +91,13 @@
   # services.xserver.libinput.enable = true;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.${dotfiles.home.username} = {
+  users.users.${dotfiles.username} = {
     isNormalUser = true;
-    description = dotfiles.home.fullname;
+    description = dotfiles.fullname;
     extraGroups = [ "networkmanager" "wheel" ];
     shell = pkgs.zsh;
     packages = with pkgs; [
       discord
-      skypeforlinux
       spotify
     ];
   };
@@ -132,12 +131,8 @@
     thunderbird
     xwayland
 
-    gnome.gnome-tweaks
-    gnome.gnome-shell-extensions
-  ];
-
-  fonts.packages = with pkgs; [
-    (nerdfonts.override { fonts = [ "Iosevka" "JetBrainsMono" "CodeNewRoman" "Meslo" "FiraCode" "DroidSansMono" ]; })
+    gnome-tweaks
+    gnome-shell-extensions
   ];
 
   # Some programs need SUID wrappers, can be configured further or are
