@@ -17,11 +17,13 @@ local toggleterm = {
     auto_scroll = false,
     persist_mode = true,
     on_stdout = function(term, _, data, _)
-      if term:is_open() then return end
+      if term:is_open() then
+        return
+      end
       for _, s in pairs(data) do
         local pos, _ = string.find(s, "❯")
-        if pos and s:sub(-1) ~= ' ' then
-          local res = s:sub(pos - 3, pos - 2) == "32" and {"Success", "info"} or {"Failed", "error"}
+        if pos and s:sub(-1) ~= " " then
+          local res = s:sub(pos - 3, pos - 2) == "32" and { "Success", "info" } or { "Failed", "error" }
           vim.notify("Job finished: " .. res[1] .. "!", res[2], { title = term.name })
         end
       end
@@ -32,7 +34,7 @@ local toggleterm = {
     },
     highlights = {
       FloatBorder = {
-        link = 'FloatBorder'
+        link = "FloatBorder",
       },
     },
   },
