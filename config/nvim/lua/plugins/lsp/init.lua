@@ -47,6 +47,11 @@ function M.config()
         capabilities = capabilities,
       }
 
+      if server == "clangd" then
+        -- 只讓 clangd 處理 C/C++ 相關的檔案，不包含 "proto"
+        opts.filetypes = { "c", "cpp", "objc", "objcpp", "cuda" }
+      end
+
       local have_config, lsp_config = pcall(require, "plugins.lsp.server." .. server)
       if have_config then
         opts = vim.tbl_deep_extend("force", lsp_config, opts)
