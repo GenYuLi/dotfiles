@@ -16,5 +16,6 @@ elif [[ ! -z "${TMUX}" ]]; then
   pane_active_tty=$(tmux list-panes -F "#{pane_active} #{pane_tty}" | awk '$1=="1" { print $2 }')
   printf "$seq" > "$pane_active_tty"
 else
-  printf "$seq" > /dev/fd/2
+  target_tty="${SSH_TTY:-$(tty)}"
+  printf "$seq" > "$target_tty"
 fi
