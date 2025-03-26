@@ -25,5 +25,6 @@ elif command -v xclip >/dev/null 2>&1; then
 elif command -v xsel >/dev/null 2>&1; then
   echo -n "$input" | xsel --clipboard --input
 else
-  printf "$seq" > /dev/fd/2
+  target_tty="${SSH_TTY:-$(tty)}"
+  printf "$seq" > "$target_tty"
 fi
