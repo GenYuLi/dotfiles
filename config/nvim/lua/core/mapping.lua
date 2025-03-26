@@ -27,8 +27,7 @@ local function yank()
   else
     vim.cmd("normal! y")
   end
-
-  local script_path = vim.fn.expand("~/.config/dotfiles/config/zsh/autoload/yank")
+  local script_path = vim.fn.expand("~/.config/zsh/autoload/yank")
   vim.system({ script_path }, { stdin = vim.fn.getreg("0") }, function(result)
     if result.code == 0 then
       vim.notify("copied to clipboard")
@@ -68,7 +67,7 @@ map("n", "<leader>ps", "<cmd>StartupTime<cr>", "Startup time")
 -- <leader>f: find{{{
 map("n", "<C-p>", "<cmd>FzfLua files<cr>", "Find files")
 map("n", "<leader>ff", "<cmd>FzfLua live_grep<cr>", "Find Text")
-map("n", "<leader>fd", "<cmd>FzfLua files cwd=~/.config<cr>", "configs")
+map("n", "<leader>fd", "<cmd>FzfLua files cwd=~/dotfiles<cr>", "Dotfiles")
 map("n", "<leader>fc", "<cmd>FzfLua commands<cr>", "Commands")
 map("n", "<leader>fh", "<cmd>FzfLua helptags<cr>", "Help")
 map("n", "<leader>fl", "<cmd>FzfLua resume<cr>", "Last Search")
