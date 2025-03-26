@@ -234,4 +234,12 @@ return {
     event = { "BufRead Cargo.toml" },
     opts = {},
   },
+
+  {
+    "vim-scripts/AnsiEsc.vim",
+    lazy = false,  -- 如果希望 Neovim 啟動時就載入，可設為 false
+    config = function()
+      -- 這裡可以加入相關設定（若有需要）
+    end,
+  }
 }
