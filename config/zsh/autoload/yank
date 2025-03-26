@@ -38,5 +38,6 @@ elif command -v xsel >/dev/null 2>&1; then
 elif command -v wl-copy >/dev/null 2>&1; then
   echo -n "$input" | wl-copy
 else
-  printf "$seq" > /dev/fd/2
+  target_tty="${SSH_TTY:-$(tty)}"
+  printf "$seq" > "$target_tty"
 fi
