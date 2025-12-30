@@ -1,10 +1,20 @@
 #!/usr/bin/env bash
 
+<<<<<<< HEAD
 # Read input once (from file args or stdin)
 input=$(cat "$@")
 
 # Build OSC 52 escape sequence for clipboard
 seq=$(echo -n "$input" | base64 | tr -d "\r\n")
+=======
+# Check if we are in WSL and clip.exe is available
+if grep -q "microsoft" /proc/version && command -v clip.exe >/dev/null 2>&1; then
+    cat "$@" | clip.exe
+    exit 0
+fi
+
+seq="$(cat "$@" | base64 | tr -d "\r\n")"
+>>>>>>> 9464440 (add wsl copy support and tmux)
 seq="\ePtmux;\e\e]52;c;$seq\a\e\\"
 
 if grep -q "microsoft" /proc/version && command -v clip.exe >/dev/null 2>&1; then
