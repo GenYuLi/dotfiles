@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+# Check if we are in WSL and clip.exe is available
+if grep -q "microsoft" /proc/version && command -v clip.exe >/dev/null 2>&1; then
+    cat "$@" | clip.exe
+    exit 0
+fi
+
 seq="$(cat "$@" | base64 | tr -d "\r\n")"
 seq="\ePtmux;\e\e]52;c;$seq\a\e\\"
 
