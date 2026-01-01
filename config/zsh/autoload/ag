@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+# check if the env is wsl
+if [ -z "$WSL_DISTRO_NAME" ]; then
+    echo "not in wsl"
+    exit 1
+fi
+
+current_path="$PWD"
+distro=$WSL_DISTRO_NAME
+remote_uri="vscode-remote://wsl+${distro}${current_path}"
+
+echo "opening $remote_uri"
+
+
+# check if antigravity is installed
+if ! command -v antigravity &> /dev/null; then
+    echo "antigravity could not be found"
+    exit 1
+fi
+antigravity --folder-uri "$remote_uri" "$@"

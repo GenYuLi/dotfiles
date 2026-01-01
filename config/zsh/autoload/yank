@@ -3,7 +3,10 @@
 seq="$(cat "$@" | base64 | tr -d "\r\n")"
 seq="\ePtmux;\e\e]52;c;$seq\a\e\\"
 
-if [[ ! -z "${SSH_TTY}" ]]; then
+if grep -q "microsoft" /proc/version && command -v clip.exe >/dev/null 2>&1; then
+    cat "$@" | clip.exe
+    exit 0
+elif [[ ! -z "${SSH_TTY}" ]]; then
   [[ ! -z "${TMUX}" ]] && export $(tmux showenv SSH_TTY)
   printf "$seq" > "$SSH_TTY"
 elif [[ ! -z "${TMUX}" ]]; then
