@@ -8,8 +8,8 @@ function M.config()
   local utils = require("heirline.utils")
 
   local assets = {
-    left_separator = '',
-    right_separator = '',
+    left_separator = "",
+    right_separator = "",
     terminal = "  ",
     tmux = "  ",
     vim = "  ",
@@ -24,32 +24,6 @@ function M.config()
     search_forward = "  ",
     search_backward = "  ",
   }
-
-  local function wrap_tmux_highlight(color_bg, component)
-    if not require("core.utils").is_tmux_active() then
-      return component
-    end
-    local settings = {
-      { "#{?client_prefix,", "Prefix", "pink" },
-      { "#{?pane_in_mode,", "Copy", "yellow" },
-      { "#{?pane_synchronized,", "Sync", "green" },
-    }
-    local res = {}
-    for _, s in pairs(settings) do
-      res[#res + 1] = {
-        provider = s[1] .. (color_bg and assets.tmux .. s[2] .. " " or assets.right_separator) .. ",",
-        hl = color_bg and { bg = s[3] } or { fg = s[3] },
-      }
-    end
-    return {
-      hl = color_bg and { fg = 'bg' } or { bg = 'purple' },
-      res,
-      component,
-      {
-        provider = "}}}",
-      }
-    }
-  end
 
   local setup_colors = function()
     return {
@@ -73,7 +47,7 @@ function M.config()
 
   local Align = {
     provider = "%=",
-    hl = { bg = "bg" }
+    hl = { bg = "bg" },
   }
 
   local Mode = {
@@ -84,40 +58,40 @@ function M.config()
     end,
     static = {
       mode_alias = {
-        ['n'] = 'NORMAL',
-        ['no'] = 'OP',
-        ['nov'] = 'OP',
-        ['noV'] = 'OP',
-        ['no'] = 'OP',
-        ['niI'] = 'NORMAL',
-        ['niR'] = 'NORMAL',
-        ['niV'] = 'NORMAL',
-        ['v'] = 'VISUAL',
-        ['vs'] = 'VISUAL',
-        ['V'] = 'LINES',
-        ['Vs'] = 'LINES',
-        [''] = 'BLOCK',
-        ['s'] = 'BLOCK',
-        ['s'] = 'SELECT',
-        ['S'] = 'SELECT',
-        [''] = 'BLOCK',
-        ['i'] = 'INSERT',
-        ['ic'] = 'INSERT',
-        ['ix'] = 'INSERT',
-        ['R'] = 'REPLACE',
-        ['Rc'] = 'REPLACE',
-        ['Rv'] = 'V-REPLACE',
-        ['Rx'] = 'REPLACE',
-        ['c'] = 'COMMAND',
-        ['cv'] = 'COMMAND',
-        ['ce'] = 'COMMAND',
-        ['r'] = 'ENTER',
-        ['rm'] = 'MORE',
-        ['r?'] = 'CONFIRM',
-        ['!'] = 'SHELL',
-        ['t'] = 'TERM',
-        ['nt'] = 'TERM',
-        ['null'] = 'NONE',
+        ["n"] = "NORMAL",
+        ["no"] = "OP",
+        ["nov"] = "OP",
+        ["noV"] = "OP",
+        ["no"] = "OP",
+        ["niI"] = "NORMAL",
+        ["niR"] = "NORMAL",
+        ["niV"] = "NORMAL",
+        ["v"] = "VISUAL",
+        ["vs"] = "VISUAL",
+        ["V"] = "LINES",
+        ["Vs"] = "LINES",
+        [""] = "BLOCK",
+        ["s"] = "BLOCK",
+        ["s"] = "SELECT",
+        ["S"] = "SELECT",
+        [""] = "BLOCK",
+        ["i"] = "INSERT",
+        ["ic"] = "INSERT",
+        ["ix"] = "INSERT",
+        ["R"] = "REPLACE",
+        ["Rc"] = "REPLACE",
+        ["Rv"] = "V-REPLACE",
+        ["Rx"] = "REPLACE",
+        ["c"] = "COMMAND",
+        ["cv"] = "COMMAND",
+        ["ce"] = "COMMAND",
+        ["r"] = "ENTER",
+        ["rm"] = "MORE",
+        ["r?"] = "CONFIRM",
+        ["!"] = "SHELL",
+        ["t"] = "TERM",
+        ["nt"] = "TERM",
+        ["null"] = "NONE",
       },
       mode_color = {
         ["n"] = "lavender",
@@ -133,32 +107,26 @@ function M.config()
         ["r"] = "red",
         ["!"] = "lavender",
         ["t"] = "lavender",
-      }
+      },
     },
 
     hl = { bold = true },
 
-    wrap_tmux_highlight(true, {
+    {
       provider = function(self)
-        return assets.vim .. self.mode_alias[self.mode] .. ' '
+        return assets.vim .. self.mode_alias[self.mode] .. " "
       end,
       hl = function(self)
-        return {
-          fg = 'bg',
-          bg = self.mode_color[self.short_mode],
-        }
+        return { fg = "bg", bg = self.mode_color[self.short_mode] }
       end,
-    }),
+    },
 
-    wrap_tmux_highlight(false, {
+    {
       provider = assets.right_separator,
       hl = function(self)
-        return {
-          fg = self.mode_color[self.short_mode],
-          bg = 'purple',
-        }
-      end
-    }),
+        return { fg = self.mode_color[self.short_mode], bg = "purple" }
+      end,
+    },
   }
 
   local Macro = {
@@ -167,26 +135,26 @@ function M.config()
       return self.reg ~= ""
     end,
     provider = function(self)
-      return assets.macro .. 'recording @' .. self.reg
+      return assets.macro .. "recording @" .. self.reg
     end,
     update = {
       "RecordingEnter",
       "RecordingLeave",
-    }
+    },
   }
 
   local Dir = {
     provider = function()
-      return assets.dir .. vim.fn.fnamemodify(vim.fn.getcwd(), ":t") .. ' '
+      return assets.dir .. vim.fn.fnamemodify(vim.fn.getcwd(), ":t") .. " "
     end,
-    update = "DirChanged"
+    update = "DirChanged",
   }
 
   local FileType = {
     provider = function()
       local ft = vim.bo.filetype
       local icon, _ = require("nvim-web-devicons").get_icon_by_filetype(ft, { default = true })
-      return ' ' .. icon .. ' ' .. ft
+      return " " .. icon .. " " .. ft
     end,
     {
       condition = function()
@@ -198,16 +166,17 @@ function M.config()
 
   local Macro_Filetype = {
     hl = {
-      fg = 'bg',
-      bg = 'purple',
+      fg = "bg",
+      bg = "purple",
     },
     {
       fallthrough = false,
-      Macro, FileType
+      Macro,
+      FileType,
     },
     Space,
     {
-      provider = assets.right_separator .. '  ',
+      provider = assets.right_separator .. "  ",
       hl = {
         fg = "purple",
         bg = "bg",
@@ -227,7 +196,8 @@ function M.config()
         return assets.git .. self.status_dict.head
       end,
     },
-    Space, Space
+    Space,
+    Space,
   }
 
   local Diagnostics = {
@@ -256,7 +226,7 @@ function M.config()
 
   local Treesitter = {
     condition = function()
-      return package.loaded['nvim-treesitter'] and require("nvim-treesitter.parsers").has_parser()
+      return package.loaded["nvim-treesitter"] and require("nvim-treesitter.parsers").has_parser()
     end,
     provider = assets.tree,
     hl = { fg = "green", bg = "bg" },
@@ -264,9 +234,9 @@ function M.config()
 
   local LSPActive = {
     condition = conditions.lsp_attached,
-    provider  = function()
+    provider = function()
       local names = {}
-      for _, server in pairs(vim.lsp.get_active_clients({ bufnr = 0 })) do
+      for _, server in pairs(vim.lsp.get_active_clients { bufnr = 0 }) do
         table.insert(names, server.name)
       end
       return assets.lsp .. table.concat(names, " ")
@@ -289,10 +259,10 @@ function M.config()
       local direction = vim.v.searchforward == 1 and assets.search_forward or assets.search_backward
       local res = self.search
       if res.incomplete == 1 then
-        return ('%s?/??%s'):format(assets.search, direction)
+        return ("%s?/??%s"):format(assets.search, direction)
       else
         local stat = res.incomplete
-        return ('%s%s%d/%s%d%s'):format(
+        return ("%s%s%d/%s%d%s"):format(
           assets.search,
           (stat == 2 and res.current > res.maxcount) and ">" or "",
           res.current,
@@ -308,34 +278,37 @@ function M.config()
     condition = function()
       return require("core.utils").is_tmux_active()
     end,
-    provider = assets.settings .. "#S "
+    provider = assets.settings .. "#S ",
   }
 
   local SearchCount_TmuxSession_Dir = {
     {
-      Space, Space,
+      Space,
+      Space,
       hl = { fg = "bg", bg = "bg" },
     },
     {
       provider = assets.left_separator,
-      hl = { fg = "red", bg = "bg" }
+      hl = { fg = "red", bg = "bg" },
     },
     {
       fallthrough = false,
       hl = { fg = "bg", bg = "red" },
-      SearchCount, TmuxSession, Dir
+      SearchCount,
+      TmuxSession,
+      Dir,
     },
     {
       provider = assets.left_separator,
-      hl = { fg = "flamingo", bg = "red" }
+      hl = { fg = "flamingo", bg = "red" },
     },
   }
 
   local Hostname = {
-    provider = assets.host .. vim.fn.hostname() .. ' ',
+    provider = assets.host .. vim.fn.hostname() .. " ",
     hl = {
-      fg = 'bg',
-      bg = 'flamingo',
+      fg = "bg",
+      bg = "flamingo",
       bold = true,
     },
     update = { "BufEnter" },
@@ -347,27 +320,29 @@ function M.config()
   }
 
   local StatusLine = {
-    Mode, Macro_Filetype, Git, Diagnostics,
+    Mode,
+    Macro_Filetype,
+    Git,
+    Diagnostics,
     Align,
-    ShowCmd, Treesitter, LSPActive, SearchCount_TmuxSession_Dir, Hostname,
+    ShowCmd,
+    Treesitter,
+    LSPActive,
+    SearchCount_TmuxSession_Dir,
+    Hostname,
   }
 
   require("heirline").setup {
     statusline = StatusLine,
     opts = {
       colors = setup_colors(),
-    }
+    },
   }
   vim.api.nvim_create_autocmd("ColorScheme", {
     callback = function()
       utils.on_colorscheme(setup_colors)
     end,
   })
-
-  if require("core.utils").is_tmux_active() then
-    require("plugins.tpipeline").setup()
-    require("lazy").load { plugins = { "vim-tpipeline" } }
-  end
 end
 
 return M
