@@ -3,16 +3,7 @@ local M = {
 }
 
 local function undotree()
-  local tmp = vim.g.tpipeline_statusline
-  if tmp and tmp:find("undotree") then return end
   vim.cmd.UndotreeShow()
-  vim.api.nvim_create_autocmd("BufUnload", {
-    pattern = "<buffer>",
-    once = true,
-    callback = function()
-      vim.g.tpipeline_statusline = tmp
-    end
-  })
 end
 
 M.config = function()
@@ -21,7 +12,7 @@ M.config = function()
 end
 
 M.keys = {
-  { "<leader>bu", undotree, desc = "Undo tree" }
+  { "<leader>bu", undotree, desc = "Undo tree" },
 }
 
 return M
