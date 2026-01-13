@@ -35,7 +35,7 @@ runs:
       with:
         name: williamhsieh
         extraPullNames: nix-community,niri
-        skipPush: true
+        skipPush: ${{ github.ref != 'refs/heads/master' }}
         authToken: '${{ inputs.cachix_auth_token }}'
 
     - name: Free Disk Space (Ubuntu)
