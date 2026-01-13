@@ -26,6 +26,8 @@ let
     };
 
   fontPkgs = with pkgs; [
+    noto-fonts-cjk-sans
+    noto-fonts-cjk-serif
     maple-mono.Normal-NF-CN-unhinted
     maple-mono.NF-CN-unhinted
   ] ++ (with nerd-fonts; [
