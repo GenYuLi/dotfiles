@@ -20,26 +20,7 @@ end
 function M.config()
   local augroup = vim.api.nvim_create_augroup("dotfiles_tpipeline_integration", { clear = true })
   local focused = true
-
-  -- cache status-bg
-  local neovim_status_style = nil
-  local function update_status_bg()
-    local bg = require("core.utils").get_hl("Normal").bg
-    neovim_status_style = string.format("bg=%s,fg=%s", bg, bg)
-  end
-  vim.schedule(update_status_bg)
-
-  -- cache tmux status-style
-  local tmux_status_style = nil
-  vim.system({ "tmux", "show-options", "-gv", "status-style" }, { text = true }, function(obj)
-    tmux_status_style = obj.stdout:match("([^\n]*)")
-  end)
-
-  -- update tmux status style based on current colorscheme
-  local function set_tmux_status_style(style)
-    -- default to set session option
-    vim.system { "tmux", "set-option", "status-style", style }
-  end
+  local need_update = true
 
   -- unset tmux option to the one set in tmux.conf
   local function unset_tmux_option(opt)
@@ -61,14 +42,6 @@ function M.config()
     group = augroup,
   })
 
-  -- update tmux status style cache based on current colorscheme
-  vim.api.nvim_create_autocmd("ColorScheme", {
-    callback = function()
-      update_status_bg()
-    end,
-    group = augroup,
-  })
-
   -- sync status style on CursorHold
   local function sync_tmux_status_style()
     vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
@@ -80,16 +53,10 @@ function M.config()
           return
         end
 
-        -- color
-        if tmux_status_style ~= neovim_status_style then
-          set_tmux_status_style(neovim_status_style)
+        if need_update then
+          set_tmux_window_name_to_cwd()
+          need_update = false
         end
-
-        -- window name
-        set_tmux_window_name_to_cwd()
-
-        -- statusline
-        vim.fn["tpipeline#forceupdate"]()
       end,
     })
   end
@@ -100,21 +67,9 @@ function M.config()
     callback = function(e)
       if e.event == "FocusGained" then
         focused = true
+        need_update = true
       end
       sync_tmux_status_style()
-    end,
-    group = augroup,
-  })
-
-  -- reset tmux status style
-  vim.api.nvim_create_autocmd("FocusLost", {
-    callback = function(e)
-      if e.event == "FocusLost" then
-        focused = false
-      end
-      if tmux_status_style ~= neovim_status_style then
-        unset_tmux_option("status-style")
-      end
     end,
     group = augroup,
   })
