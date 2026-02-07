@@ -34,14 +34,17 @@ window#waybar {
   margin-bottom: 2px;
   margin-left: 3px;
   margin-right: 3px;
-  padding-top: 3px;
-  padding-bottom: 3px;
+  padding-top: 2px;
+  padding-bottom: 2px;
   padding-left: 10px;
   padding-right: 10px;
   border-radius: 10px;
   background: #1e1d2f;
-  color: #b4befe;
-  border-bottom: 3px solid #b4befe;
+  color: #cad3f5;
+  border-bottom: 2px solid #cad3f5;
+  border-top: 2px solid #cad3f5;
+  border-left: 2px solid #cad3f5;
+  border-right: 2px solid #cad3f5;
   transition: 0.3s;
 }
 
@@ -62,7 +65,7 @@ window#waybar {
 #tray:hover,
 #custom-launcher:hover,
 #workspaces button:hover {
-  background: #b4befe;
+  background: #cad3f5;
   color: #1e1d2f;
 }
 
@@ -116,12 +119,12 @@ window#waybar {
 }
 
 #idle_inhibitor.deactivated {
-  color: #b4befe;
+  color: #cad3f5;
 }
 
 #idle_inhibitor.deactivated:hover {
   color: #1e1d2f;
-  background: #b4befe;
+  background: #cad3f5;
 }
 
 #workspaces {
@@ -130,6 +133,6 @@ window#waybar {
 }
 
 #workspaces button {
-  color: #b4befe;
+  color: #cad3f5;
   transition: 0.3s;
 }
