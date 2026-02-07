@@ -43,7 +43,7 @@
       "critical": 15,
     },
     "format": "{icon}  {capacity}%",
-    "format-charging": " 󱐋 {capacity}%",
+    "format-charging": "󱐋 {capacity}%",
     "format-icons": ["", "", "", "", ""],
     // "format-icons": ["󰂎", "󰁼", "󰁿", "󰂁", "󰁹"],
     "max-length": 25,
