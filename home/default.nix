@@ -29,6 +29,8 @@ in
   home = {
     stateVersion = "25.05";
 
+    preferXdgDirectories = true;
+
     inherit (dotfiles) username;
 
     homeDirectory = with pkgs.stdenv;
@@ -297,8 +299,11 @@ in
     enable = pkgs.stdenv.isLinux;
     settings = {
       default-timeout = 10000;
+      anchor = "top-center";
     };
   };
+
+  services.swayosd.enable = dotfiles.profile == "nixos";
 
   services.pueue = {
     enable = pkgs.stdenv.isLinux;
