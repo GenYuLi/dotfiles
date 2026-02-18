@@ -24,6 +24,10 @@
       "*.swp"
       ".DS_Store"
     ];
+    signing = {
+      key = dotfiles.signingKey;
+      signByDefault = true;
+    };
     settings = {
       safe = {
         directory = [ "/marketdata" ];
@@ -42,6 +46,12 @@
       init.defaultBranch = "master";
       core = {
         whitespace = "error";
+      };
+      gpg = {
+        format = "ssh";
+        ssh = {
+          allowedSignersFile = "/home/${dotfiles.username}/.ssh/allowed_signers";
+        };
       };
       url = {
         "git@github.com" = {

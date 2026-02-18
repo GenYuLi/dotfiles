@@ -71,6 +71,11 @@ def parse_args():
         type=str,
         help="email address (for git config, default to USERNAME@HOSTNAME)",
     )
+    parser.add_argument(
+        "--signing-key",
+        type=str,
+        help="SSH public key path for git commit signing (default to ~/.ssh/id_ed25519.pub)",
+    )
     parser.add_argument("remainder", nargs="*")
 
     args = parser.parse_args()
@@ -82,7 +87,7 @@ def parse_args():
         args.hostname = args.hostname or command_output("hostname")
         return args
 
-    if args.profile or args.username or args.hostname or args.fullname or args.email:
+    if args.profile or args.username or args.hostname or args.fullname or args.email or args.signing_key:
         print(
             "Warning: The following arguments require --bootstrap to be enabled to be effective:\n"
             "  * --profile\n"
@@ -90,6 +95,7 @@ def parse_args():
             "  * --hostname\n"
             "  * --fullname\n"
             "  * --email\n"
+            "  * --signing-key\n"
         )
 
     config = open(args.dir + "/config/default.nix").read()
@@ -119,6 +125,7 @@ def write_config(args):
         "hostname": args.hostname,
         "fullname": args.fullname or args.username,
         "email": args.email or f"{args.username}@{args.hostname}",
+        "signingKey": args.signing_key or "/home/" + args.username  + "/.ssh/id_ed25519.pub",
     }
 
     with open(args.dir + "/config/default.nix", "w") as f:
