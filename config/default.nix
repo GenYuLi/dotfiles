@@ -6,4 +6,5 @@
   hostname = "";
   fullname = "";
   email = "";
+  signingKey = "";
 }

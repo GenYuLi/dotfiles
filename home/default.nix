@@ -102,6 +102,7 @@ in
       poetry
       python315
       nixpkgs-fmt
+      nixfmt-rfc-style
 
       # network
       httpie
