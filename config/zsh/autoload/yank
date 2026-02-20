@@ -15,6 +15,15 @@ elif [[ ! -z "${SSH_TTY}" ]]; then
 elif [[ ! -z "${TMUX}" ]]; then
   pane_active_tty=$(tmux list-panes -F "#{pane_active} #{pane_tty}" | awk '$1=="1" { print $2 }')
   printf "$seq" > "$pane_active_tty"
+# macOS
+elif command -v pbcopy >/dev/null 2>&1; then
+  echo -n "$input" | pbcopy
+# Linux xclip
+elif command -v xclip >/dev/null 2>&1; then
+  echo -n "$input" | xclip -selection clipboard
+# Linux xsel
+elif command -v xsel >/dev/null 2>&1; then
+  echo -n "$input" | xsel --clipboard --input
 else
   printf "$seq" > /dev/fd/2
 fi
