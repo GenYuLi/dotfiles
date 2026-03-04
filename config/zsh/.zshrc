@@ -14,7 +14,7 @@
 
     # auto attach to tmux
     # FIX: add condition to determine when TMUX is disabled through F10
-    tmux_can_attach=$( [ -n "$PS1" ] && [ -z "$TMUX" ] && [ $SHLVL = 1 ] && echo 1 || echo 0 )
+    tmux_can_attach=$( [ -n "$PS1" ] && [ -z "$TMUX" ] && [ -z "$SSH_CONNECTION" ] && [ $SHLVL = 1 ] && echo 1 || echo 0 )
     tmux_has_session=$(tmux has-session 2> /dev/null && echo 1 || echo 0)
     (( $tmux_can_attach )) && (( $tmux_has_session )) && tmux a
 
