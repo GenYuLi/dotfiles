@@ -26,7 +26,9 @@ M.opts = {
       ["ctrl-h"] = function(...)
         require("fzf-lua.actions").toggle_hidden(...)
       end,
-      ["alt-t"] = require("fzf-lua.actions").file_tabedit,
+      ["alt-t"] = function(...)
+        require("fzf-lua.actions").file_tabedit(...)
+      end,
     },
   },
   previewers = {
