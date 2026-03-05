@@ -157,6 +157,7 @@ map("v", "<S-l>", ":m '>+1<cr>gv=gv")
 map("n", "H", "<cmd>BufferLineCyclePrev<cr>", "Previous buffer")
 map("n", "L", "<cmd>BufferLineCycleNext<cr>", "Next buffer")
 map("n", "Q", "<cmd>Bdelete<cr>", "Delete buffer")
+map("n", "<leader>Q", "<cmd>tabclose<cr>", "Close tab")
 
 -- navigation
 map({ "n", "v" }, "<C-j>", "4jzz")

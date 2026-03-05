@@ -87,12 +87,21 @@ return {
         end, { buffer = buf_id, desc = "Split " .. direction })
       end
 
+      local map_tab = function(buf_id, lhs)
+        vim.keymap.set("n", lhs, function()
+          MiniFiles.go_in { close_on_file = true }
+          -- The file is now open in the target window; move it to a new tab
+          vim.cmd("tab split")
+        end, { buffer = buf_id, desc = "Open in new tab" })
+      end
+
       vim.api.nvim_create_autocmd("User", {
         pattern = "MiniFilesBufferCreate",
         callback = function(args)
           local buf_id = args.data.buf_id
           map_split(buf_id, "gs", "belowright horizontal")
           map_split(buf_id, "gv", "belowright vertical")
+          map_tab(buf_id, "gt")
         end,
       })
 
