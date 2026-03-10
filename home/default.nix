@@ -88,6 +88,10 @@ in
       trash-cli
       bashInteractive
 
+      # audio
+      # yt-dlp # temporarily disabled: curl-cffi build failure in nixpkgs
+      ffmpeg
+
       # parser
       jc
       jq
@@ -118,6 +122,8 @@ in
       litecli
       nix-tree
 
+      navi
+
       # misc
       nix-search-cli
       hello-unfree #test unfree packages
@@ -127,6 +133,10 @@ in
       qimgv # export QT_XCB_GL_INTEGRATION=none
       netcat-openbsd # only the bsd version support `-k`
     ]);
+
+    sessionPath = [
+      "$HOME/.uv/bin"
+    ];
 
     sessionVariables = rec {
       COLORTERM = "truecolor";
@@ -139,6 +149,8 @@ in
       MANPAGER = "nvim +Man!";
       LESSUTFCHARDEF = "E000-F8FF:p,F0000-FFFFD:p,100000-10FFFD:p"; # HACK: https://github.com/sharkdp/bat/issues/2578
       DOTFILES_DIR = "${dotfiles.directory}";
+      NAVI_PATH = "${dotfiles.directory}/config/navi";
+      UV_TOOL_BIN_DIR = "${config.home.homeDirectory}/.uv/bin";
 
       # NOTE: https://github.com/NixOS/nixpkgs/issues/206242
       # LIBRARY_PATH = "${pkgs.iconv}/lib";
@@ -163,6 +175,7 @@ in
     "nvim".source = symlinkDotfiles "config/nvim";
     "glow".source = symlinkDotfiles "config/glow";
     "vim".source = symlinkDotfiles "config/vim";
+    "navi".source = symlinkDotfiles "config/navi";
     "niri".source = symlinkDotfiles "config/niri";
     "waybar".source = symlinkDotfiles "config/waybar";
   };
