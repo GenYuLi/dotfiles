@@ -37,6 +37,9 @@
 
       zvm_bindkey viins '^R' fzf-history-widget;
 
+      # navi cheatsheet widget (Ctrl-g)
+      eval "$(navi widget zsh)"
+
       autopair-init
     }
 
