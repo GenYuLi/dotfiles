@@ -96,14 +96,47 @@ return {
           local opts = function(desc) return { buffer = ev.buf, desc = desc } end
           -- <leader>rr: fzf picker for all runnables (tests + binaries + examples)
           vim.keymap.set("n", "<leader>rr", rust_runnables, opts("Rust: pick & run"))
-          -- <leader>rt: run test under cursor via rust-analyzer code action
+          -- <leader>rt: run test under cursor via experimental/runnables
           vim.keymap.set("n", "<leader>rt", function()
-            vim.lsp.buf.code_action({
-              filter = function(action)
-                return action.title:match("^Run ")
-              end,
-              apply = true,
-            })
+            local bufnr = vim.api.nvim_get_current_buf()
+            local params = vim.lsp.util.make_position_params()
+            vim.lsp.buf_request(bufnr, "experimental/runnables", params, function(err, result)
+              if err then
+                vim.notify("rust-analyzer: " .. err.message, vim.log.levels.ERROR)
+                return
+              end
+              if not result or #result == 0 then
+                vim.notify("No runnables found at cursor", vim.log.levels.WARN)
+                return
+              end
+              -- Find the first test runnable (skip the generic "cargo test" / "cargo check")
+              local test_runnable
+              for _, r in ipairs(result) do
+                if r.label:match("^test ") or r.label:match("^doctest ") then
+                  test_runnable = r
+                  break
+                end
+              end
+              if not test_runnable then
+                vim.notify("No test found at cursor", vim.log.levels.WARN)
+                return
+              end
+              local args = test_runnable.args
+              local cargo_cmd = table.concat(args.cargoArgs or {}, " ")
+              if args.cargoExtraArgs and #args.cargoExtraArgs > 0 then
+                cargo_cmd = cargo_cmd .. " " .. table.concat(args.cargoExtraArgs, " ")
+              end
+              local cmd = "cd " .. vim.fn.shellescape(args.workspaceRoot)
+                .. " && cargo " .. cargo_cmd
+              if args.executableArgs and #args.executableArgs > 0 then
+                cmd = cmd .. " -- " .. table.concat(args.executableArgs, " ")
+              end
+              require("toggleterm.terminal").Terminal:new({
+                cmd = cmd,
+                direction = "float",
+                close_on_exit = false,
+              }):toggle()
+            end)
           end, opts("Rust: run test under cursor"))
           -- <leader>rb: cargo build
           vim.keymap.set("n", "<leader>rb", function()
