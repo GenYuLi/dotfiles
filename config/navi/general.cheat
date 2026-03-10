@@ -1,0 +1,13 @@
+% general
+
+# Show disk usage of current directory (sorted)
+du -sh * | sort -rh
+
+# Find process by name
+ps aux | grep <process>
+
+# Kill process by port
+lsof -ti:<port> | xargs kill -9
+
+# Watch file changes in directory
+watch -n 1 ls -la <path>
