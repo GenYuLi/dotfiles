@@ -51,6 +51,9 @@
       eval "$(navi widget zsh)"
       zvm_bindkey viins '^g' _navi_widget
 
+      # navi cheatsheet widget (Ctrl-g)
+      eval "$(navi widget zsh)"
+
       autopair-init
     }
 
