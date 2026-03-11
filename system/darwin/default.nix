@@ -25,6 +25,7 @@ in
     casks = [
       "arc"
       "google-chrome"
+      "ghostty"
 
       "xquartz"
       "google-drive"
