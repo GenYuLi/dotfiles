@@ -128,6 +128,7 @@ $ container: docker ps --format '{{.Names}}' --- --header-lines 0
 
 ---
 
+
 ## 社群 Cheatsheet
 
 navi 有龐大的社群 cheat 庫，可以直接匯入：
@@ -151,6 +152,7 @@ navi repo add <url>      # 加入指定 repo
 | **zsh-abbr** | 固定的短縮寫，展開成完整指令（無參數）|
 | `Ctrl-r` | 搜尋過去執行過的歷史指令 |
 | **`<leader>rr`**（nvim） | Rust 專屬，從 rust-analyzer 動態取得 runnables |
+
 
 ---
 
