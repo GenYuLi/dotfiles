@@ -21,6 +21,7 @@ in
     ./fzf.nix
     ./git.nix
     ./alacritty.nix
+    ./ghostty.nix
     ./cpp.nix
     inputs.nix-index-database.homeModules.nix-index
     inputs.catppuccin.homeModules.catppuccin
