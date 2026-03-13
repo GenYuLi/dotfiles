@@ -17,10 +17,9 @@ zinit light hlissner/zsh-autopair
 zinit light Tarrasch/zsh-bd
 #zinit light MenkeTechnologies/zsh-zsh # 這個插件有問題, 找不到這個網址, 再問問 william
 zinit light Aloxaf/fzf-tab
-zinit light jeffreytse/zsh-vi-mode
-
+# vi-mode: 必須在 zinit light 之前設定，否則不生效
 ZVM_VI_ESCAPE_BINDKEY=kj
-source ~/.local/share/zinit/plugins/jeffreytse---zsh-vi-mode/zsh-vi-mode.plugin.zsh
+zinit light jeffreytse/zsh-vi-mode
 
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
