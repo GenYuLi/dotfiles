@@ -4,9 +4,14 @@
 
 local function rust_runnables()
   local bufnr = vim.api.nvim_get_current_buf()
-  local params = vim.lsp.util.make_position_params()
+  local clients = vim.lsp.get_clients({ bufnr = bufnr, name = "rust_analyzer" })
+  if #clients == 0 then
+    vim.notify("No rust-analyzer attached", vim.log.levels.WARN)
+    return
+  end
+  local params = vim.lsp.util.make_position_params(0, clients[1].offset_encoding)
 
-  vim.lsp.buf_request(bufnr, "experimental/runnables", params, function(err, result)
+  clients[1].request("experimental/runnables", params, function(err, result)
     if err then
       vim.notify("rust-analyzer: " .. err.message, vim.log.levels.ERROR)
       return
@@ -99,8 +104,13 @@ return {
           -- <leader>rt: run test under cursor via experimental/runnables
           vim.keymap.set("n", "<leader>rt", function()
             local bufnr = vim.api.nvim_get_current_buf()
-            local params = vim.lsp.util.make_position_params()
-            vim.lsp.buf_request(bufnr, "experimental/runnables", params, function(err, result)
+            local clients = vim.lsp.get_clients({ bufnr = bufnr, name = "rust_analyzer" })
+            if #clients == 0 then
+              vim.notify("No rust-analyzer attached", vim.log.levels.WARN)
+              return
+            end
+            local params = vim.lsp.util.make_position_params(0, clients[1].offset_encoding)
+            clients[1].request("experimental/runnables", params, function(err, result)
               if err then
                 vim.notify("rust-analyzer: " .. err.message, vim.log.levels.ERROR)
                 return
@@ -138,6 +148,31 @@ return {
               }):toggle()
             end)
           end, opts("Rust: run test under cursor"))
+          -- <leader>re: rustc --explain for error code under cursor or from diagnostic
+          vim.keymap.set("n", "<leader>re", function()
+            -- rust-analyzer puts the error code in diagnostic.code, not .message
+            local code
+            local diags = vim.diagnostic.get(0, { lnum = vim.fn.line(".") - 1 })
+            for _, d in ipairs(diags) do
+              if d.code then
+                code = tostring(d.code):match("[Ee]%d+")
+                if code then break end
+              end
+            end
+            -- fallback: word under cursor (e.g. manually typed E0308)
+            if not code then
+              code = vim.fn.expand("<cWORD>"):match("[Ee]%d+")
+            end
+            if not code then
+              vim.notify("No Rust error code found", vim.log.levels.WARN)
+              return
+            end
+            require("toggleterm.terminal").Terminal:new({
+              cmd = "rustc --explain " .. code:upper(),
+              direction = "float",
+              close_on_exit = false,
+            }):toggle()
+          end, opts("Rust: explain error code"))
           -- <leader>rb: cargo build
           vim.keymap.set("n", "<leader>rb", function()
             vim.cmd('TermExec cmd="cargo build"')
