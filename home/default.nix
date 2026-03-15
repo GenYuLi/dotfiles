@@ -50,6 +50,8 @@ in
       # lib
       zlib
       iconv
+      openssl
+      pkg-config
 
       # basic tools
       coreutils-full
@@ -275,7 +277,7 @@ in
     enable = pkgs.stdenv.isLinux;
     settings = {
       main = {
-        terminal = "${pkgs.alacritty}/bin/alacritty";
+        terminal = "alacritty";
         layer = "overlay";
       };
       border = {
