@@ -1,0 +1,9 @@
+% tools, display
+
+# 關閉螢幕（DPMS off，動滑鼠或按鍵喚醒）
+~/tools/display-off.sh
+
+% tools, kde, google
+
+# 修復 KDE Google 帳號整合（加入 Drive scope）
+~/tools/fix_kde_google_intergration.sh
