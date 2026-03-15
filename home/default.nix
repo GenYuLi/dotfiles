@@ -173,6 +173,8 @@ in
 
   xdg.enable = true;
 
+  home.file."tools".source = symlinkDotfiles "config/tools";
+
   xdg.configFile = {
     "dotfiles".source = symlinkDotfiles ".";
     "nvim".source = symlinkDotfiles "config/nvim";
