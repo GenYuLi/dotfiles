@@ -48,6 +48,7 @@ in
       extraSpecialArgs = {
         inherit inputs dotfiles;
         isSystemConfig = false;
+        nixgl = inputs.nixgl;
       };
       modules = [
         ../home
