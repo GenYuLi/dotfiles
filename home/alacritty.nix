@@ -1,7 +1,22 @@
-{ pkgs, lib, ... }:
+{ pkgs, lib, nixgl, ... }:
+let
+  nixGLWrap = pkg:
+    let
+      nixGLDefault = nixgl.packages.${pkgs.system}.nixGLIntel;
+    in
+    pkgs.runCommand "${pkg.name}-nixgl" { nativeBuildInputs = [ pkgs.makeWrapper ]; } ''
+      mkdir -p $out/bin
+      for bin in ${pkg}/bin/*; do
+        makeWrapper ${nixGLDefault}/bin/nixGLIntel $out/bin/$(basename $bin) \
+          --argv0 $(basename $bin) \
+          --add-flags "$bin"
+      done
+    '';
+in
 {
   programs.alacritty = {
     enable = true;
+    package = if pkgs.stdenv.isLinux then nixGLWrap pkgs.alacritty else pkgs.alacritty;
     settings = {
       terminal.shell = {
         program = "${pkgs.zsh}/bin/zsh";
