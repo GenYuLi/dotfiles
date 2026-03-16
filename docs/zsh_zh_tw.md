@@ -8,10 +8,14 @@
 
 啟動後預設在 **Insert 模式**（正常打字），按 `Esc` 或 `kj` 進入 **Normal 模式**，可以用 vi 鍵位移動和編輯命令列。
 
-| 操作 | 按鍵 |
-|------|------|
-| 進入 Normal 模式 | `Esc` 或 `kj` |
-| 回到 Insert 模式 | `i` / `a` |
+| 操作 | 按鍵 | 說明 |
+|------|------|------|
+| 進入 Normal 模式 | `Esc` 或 `kj` | 可用 vi 鍵位移動和編輯 |
+| 回到 Insert 模式 | `i` / `a` | |
+| Visual 模式（字元） | Normal 下按 `v` | 選取命令列上的文字 |
+| Visual 模式（整行） | Normal 下按 `V` | 選取整行 |
+
+> **想瀏覽終端歷史輸出？** 那是 tmux copy mode 的範疇，用 `<prefix> [` 或 `Alt+Ctrl+F`（搜尋）進入。詳見 tmux 文件的 Copy Mode 章節。
 
 ---
 

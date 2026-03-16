@@ -267,9 +267,35 @@ SSH 到遠端且遠端也有 tmux 時，本地 tmux 會攔截所有按鍵。用 
 | 進入 off 模式（讓遠端 tmux 接管） | `C-F10` |
 | 離開 off 模式（回到本地 tmux） | `C-F10` |
 
-Off 模式下仍有效的按鍵（直接操作本地 session）：
-- `M-)` / `M-(` — 切換本地 session
-- `M-T` — 建立本地 session
+進入 off 模式後，本地 tmux 的 prefix 和大部分 keybinding 都會停用，按鍵直接穿透到遠端 tmux。
+
+> **注意**：`M-(` / `M-)` 目前在 off table 中仍綁定為本地 `switch-client`，因此即使進入 off 模式也會被本地 tmux 攔截，無法穿透到遠端。
+> 若需要在遠端切換 session，使用以下替代方式。
+
+### 遠端 session 操作（off 模式下）
+
+| 操作 | 按鍵 | 說明 |
+|------|------|------|
+| 列出 session | `<prefix> s` | prefix 在 off 模式下穿透到遠端 tmux |
+| 下一個 session | `<prefix> )` | 帶 prefix 版本，不受外層攔截 |
+| 上一個 session | `<prefix> (` | 帶 prefix 版本，不受外層攔截 |
+| 上一個 session (last) | `<prefix> L` | 切回最近使用的 session |
+| Kill session | 在 `<prefix> s` 列表中按 `x` | 選中後按 `x` 刪除 |
+| 重新命名 session | 在 `<prefix> s` 列表中按 `r` | 選中後按 `r` 改名 |
+| Tag 多選 | 在 `<prefix> s` 列表中按 `t` | 標記後按 `X` 批次刪除 |
+
+### Session 列表互動操作（`<prefix> s`）
+
+`<prefix> s` 叫出的 tree 模式下可用的按鍵：
+
+| 按鍵 | 說明 |
+|------|------|
+| `Enter` | 切換到選中的 session |
+| `x` | 關閉選中的 session/window/pane |
+| `X` | 關閉所有 tagged 項目 |
+| `t` | 標記（tag）項目，可多選 |
+| `r` | 重新命名 |
+| `O` | 切換排序方式 |
 
 ---
 
