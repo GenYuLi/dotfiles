@@ -7,3 +7,11 @@
 
 # 修復 KDE Google 帳號整合（加入 Drive scope）
 ~/tools/fix_kde_google_intergration.sh
+
+% tools, mako, notification
+
+# 清除所有通知
+makoctl dismiss --all
+
+# 重新載入 mako 設定
+makoctl reload
