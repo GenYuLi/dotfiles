@@ -33,8 +33,8 @@
         directory = [ "/marketdata" ];
       };
       user = {
-        name = dotfiles.fullname;
-        email = dotfiles.email;
+        name = "GenYuLi";
+        email = "hank90555@gmail.com";
       };
       alias = {
         undo = "reset HEAD@{1}";
