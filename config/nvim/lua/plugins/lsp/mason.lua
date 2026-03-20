@@ -16,6 +16,7 @@ M.opts = {
     "lua-language-server",
     "nil",
     "pyright",
+    "rust-analyzer",
     "ruff",
     "typescript-language-server",
 
