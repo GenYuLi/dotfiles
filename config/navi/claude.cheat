@@ -1,0 +1,7 @@
+% claude, env
+
+# Switch to personal Claude (unset proxy)
+source ~/use_my_claude.sh
+
+# Switch to Synology Claude (use LLM gateway)
+source ~/use_syno_claude.sh
