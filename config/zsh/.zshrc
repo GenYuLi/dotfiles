@@ -31,6 +31,8 @@
     function zvm_after_init() {
       bindkey "^[f" forward-word
       bindkey "^[b" backward-word
+      bindkey "^[[1;3C" forward-word
+      bindkey "^[[1;3D" backward-word
       bindkey "^d" delete-char
       bindkey "d" kill-word
       bindkey "^f" live_grep
