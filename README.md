@@ -7,6 +7,8 @@ These are my configuration for `neovim`, `zsh`, and `tmux` using [nix](https://n
 
 ## Getting Started
 
+### With Nix + Home Manager (`master` branch)
+
 1. install [nix](https://nixos.org/download.html) with the recommended installer provided by [`determinate systems`](https://determinate.systems/)
 
 ```bash
@@ -24,6 +26,26 @@ git clone http://github.com/williamhsieh/dotfiles
 ```
 
 3. (optional) download [nerd fonts](https://www.nerdfonts.com/) for the terminal emulator, if home profile is selected
+
+### Without Nix (`no-nix` branch)
+
+For machines where nix is not available (e.g. VBM, remote servers), standalone config files are provided in `home-config/`.
+
+```bash
+git clone http://github.com/williamhsieh/dotfiles -b no-nix
+cd dotfiles
+
+# symlink zsh config
+ln -sf $(pwd)/home-config/.zshrc ~/.zshrc
+ln -sf $(pwd)/home-config/.zshenv ~/.zshenv
+
+# symlink other configs (tmux, nvim, navi)
+ln -sf $(pwd)/config/tmux ~/.config/tmux
+ln -sf $(pwd)/config/nvim ~/.config/nvim
+ln -sf $(pwd)/config/navi ~/.config/navi
+```
+
+Prerequisites: `zsh`, `zinit`, `oh-my-zsh`, `powerlevel10k`, `fzf`, `navi`, `thefuck`
 
 ## Feedback
 
