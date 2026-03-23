@@ -16,7 +16,13 @@
     # FIX: add condition to determine when TMUX is disabled through F10
     tmux_can_attach=$( [ -n "$PS1" ] && [ -z "$TMUX" ] && [ -z "$SSH_CONNECTION" ] && [ $SHLVL = 1 ] && echo 1 || echo 0 )
     tmux_has_session=$(tmux has-session 2> /dev/null && echo 1 || echo 0)
-    (( $tmux_can_attach )) && (( $tmux_has_session )) && tmux a
+    if (( $tmux_can_attach )) && (( $tmux_has_session )); then
+      __tmux_auto_attach() {
+        add-zsh-hook -d precmd __tmux_auto_attach
+        tmux a
+      }
+      add-zsh-hook precmd __tmux_auto_attach
+    fi
 
     # HACK: https://github.com/chisui/zsh-nix-shell/issues/19
     if [[ -n $IN_NIX_SHELL && -n $VIRTUAL_ENV ]]; then
