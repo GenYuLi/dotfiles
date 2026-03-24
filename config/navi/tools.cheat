@@ -8,6 +8,11 @@
 # 修復 KDE Google 帳號整合（加入 Drive scope）
 ~/tools/fix_kde_google_intergration.sh
 
+% tools, tmux, env
+
+# 更新現有 shell 的 tmux 環境變數（DISPLAY, WAYLAND_DISPLAY 等）
+eval "$(tmux show-environment -s 2>/dev/null)"
+
 % tools, mako, notification
 
 # 清除所有通知
