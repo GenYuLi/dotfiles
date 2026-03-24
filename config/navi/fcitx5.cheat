@@ -1,0 +1,16 @@
+% fcitx5, input method, setup
+
+# 安裝 fcitx5 + 新酷音（Fedora）
+sudo dnf install fcitx5 fcitx5-chewing fcitx5-configtool kcm-fcitx5 fcitx5-qt fcitx5-gtk
+
+# 開啟 fcitx5 設定工具
+fcitx5-configtool
+
+# 設定 KDE Virtual Keyboard 為 fcitx5（需登出再登入）
+echo "System Settings → Virtual Keyboard → Fcitx5"
+
+# 檢查 fcitx5 是否正在運行
+fcitx5-diagnose
+
+# 重啟 fcitx5
+fcitx5 -r -d
