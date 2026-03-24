@@ -15,8 +15,8 @@
     font-feature = +liga
     font-feature = +calt
 
-    # Theme - catppuccin mocha (matches alacritty)
-    theme = catppuccin-mocha
+    # Theme - catppuccin macchiato (matches alacritty)
+    theme = catppuccin-macchiato
     background-opacity = 1.0
     # background-opacity = 0.95
     # background-blur-radius = 20
