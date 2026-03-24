@@ -71,6 +71,7 @@ in
       # useful tools
       fd
       ripgrep
+      skim
       comma
       tldr
       dua
