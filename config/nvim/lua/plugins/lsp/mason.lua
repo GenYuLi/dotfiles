@@ -18,6 +18,7 @@ M.opts = {
     "pyright",
     "rust-analyzer",
     "ruff",
+    "texlab",
     "typescript-language-server",
 
     -- formatter / linter

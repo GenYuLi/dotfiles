@@ -43,7 +43,7 @@ function M.config()
       enable = true,
       disable = function(lang, buf)
         local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
-        if lang == "latex" or ok and stats and stats.size > vim.g.bigfile_size then
+        if ok and stats and stats.size > vim.g.bigfile_size then
           return true
         end
         return false

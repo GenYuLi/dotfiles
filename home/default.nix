@@ -84,6 +84,7 @@ in
 
       # editor
       unstable.neovim
+      tree-sitter
       unzip
       nodejs
 
