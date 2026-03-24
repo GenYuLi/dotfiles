@@ -92,6 +92,13 @@ let
     source ${zsh-powerlevel10k}/share/zsh-powerlevel10k/powerlevel10k.zsh-theme
     source ${dotDir}/config/zsh/.p10k.zsh
 
+    # fcitx5 input method (installed via dnf, not nix)
+    # sudo dnf install fcitx5 fcitx5-chewing fcitx5-configtool kcm-fcitx5 fcitx5-qt fcitx5-gtk
+    if command -v fcitx5 &>/dev/null; then
+      export GTK_IM_MODULE=fcitx
+      export XMODIFIERS=@im=fcitx
+    fi
+
     # other settings
     source ${dotDir}/config/zsh/.zshrc
   '';
