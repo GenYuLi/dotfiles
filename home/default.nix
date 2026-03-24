@@ -22,6 +22,7 @@ in
     ./git.nix
     ./alacritty.nix
     ./ghostty.nix
+    ./desktop.nix
     ./cpp.nix
     inputs.nix-index-database.homeModules.nix-index
     inputs.catppuccin.homeModules.catppuccin
@@ -183,14 +184,17 @@ in
     "navi".source = symlinkDotfiles "config/navi";
     "niri".source = symlinkDotfiles "config/niri";
     "waybar".source = symlinkDotfiles "config/waybar";
+    "Vencord/themes/catppuccin.css".text = ''
+      @import url("https://catppuccin.github.io/discord/dist/catppuccin-macchiato-sky.theme.css");
+    '';
   };
 
   catppuccin = {
     enable = true;
-    flavor = "mocha";
+    flavor = "macchiato";
+    accent = "sky";
 
     glamour.enable = true;
-    fuzzel.accent = "lavender";
   };
 
   programs.home-manager.enable = true;
@@ -294,15 +298,6 @@ in
 
   # for fast-syntax-highlighting
   programs.man.generateCaches = true;
-
-  home.pointerCursor = {
-    enable = pkgs.stdenv.isLinux;
-    package = pkgs.xcursor-pro;
-    name = "XCursor-Pro-Dark";
-    size = 16;
-    gtk.enable = true;
-    x11.enable = true;
-  };
 
   systemd.user.startServices = "sd-switch";
 
