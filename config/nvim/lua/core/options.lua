@@ -58,20 +58,20 @@ vim.opt.fillchars:append {
 vim.g.mapleader = " "
 
 require("core.utils").on_tmux_active(function()
-  local load_buffer = { "tmux", "load-buffer", "-" }
+  local yank = { "bash", vim.fn.expand("~/.config/dotfiles/config/zsh/autoload/yank") }
   local save_buffer = { "tmux", "save-buffer", "-" }
 
   vim.g.clipboard = {
-    name = "tmux_buffer",
+    name = "tmux_osc52",
     copy = {
-      ["+"] = load_buffer,
-      ["*"] = load_buffer,
+      ["+"] = yank,
+      ["*"] = yank,
     },
     paste = {
       ["+"] = save_buffer,
       ["*"] = save_buffer,
     },
-    cache_enabled = 1,
+    cache_enabled = 0,
   }
 
   vim.o.clipboard = "unnamedplus"
