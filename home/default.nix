@@ -108,6 +108,7 @@ in
       # language specific
       rustup
       go
+      bun
       uv
       poetry
       python315
@@ -312,7 +313,7 @@ in
   };
 
   services.mako = {
-    enable = pkgs.stdenv.isLinux;
+    enable = pkgs.stdenv.isLinux && (builtins.pathExists "/etc/fedora-release" == false);
     settings = {
       default-timeout = 10000;
       anchor = "top-center";
