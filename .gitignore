@@ -1,2 +1,4 @@
 .direnv
 .pre-commit-config.yaml
+result
+config/navi/navi.log
