@@ -198,6 +198,7 @@ in
     accent = "sky";
 
     glamour.enable = true;
+    mako.enable = builtins.pathExists "/etc/fedora-release" == false;
   };
 
   programs.home-manager.enable = true;

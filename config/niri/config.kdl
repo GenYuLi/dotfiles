@@ -1,6 +1,14 @@
 spawn-at-startup "nm-applet"
 spawn-at-startup "blueman-applet"
 spawn-at-startup "xwayland-satellite"
+spawn-at-startup "fcitx5" "-d" "--replace"
+
+environment {
+    GTK_IM_MODULE "fcitx"
+    QT_IM_MODULE "fcitx"
+    XMODIFIERS "@im=fcitx"
+    SDL_IM_MODULE "fcitx"
+}
 
 xwayland-satellite {
     path "/run/current-system/sw/bin/xwayland-satellite"
