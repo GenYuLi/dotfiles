@@ -71,7 +71,7 @@ in
       # useful tools
       fd
       ripgrep
-      skim
+      unstable.skim
       comma
       tldr
       dua
