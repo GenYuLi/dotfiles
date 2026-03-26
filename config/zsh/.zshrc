@@ -41,9 +41,11 @@
       bindkey "^[[1;3D" backward-word
       bindkey "^d" delete-char
       bindkey "d" kill-word
-      bindkey "^f" live_grep
+      zvm_bindkey viins '^f' live_grep;
 
-      zvm_bindkey viins '^R' fzf-history-widget;
+      zvm_bindkey viins '^T' skim-file-widget;
+      zvm_bindkey viins '^R' skim-history-widget;
+      zvm_bindkey viins '^[c' skim-cd-widget;
 
       # navi cheatsheet widget (Ctrl-g)
       eval "$(navi widget zsh)"
