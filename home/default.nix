@@ -19,6 +19,7 @@ in
     ./zsh.nix
     ./tmux.nix
     ./fzf.nix
+    ./skim.nix
     ./git.nix
     ./alacritty.nix
     ./ghostty.nix
@@ -71,7 +72,6 @@ in
       # useful tools
       fd
       ripgrep
-      unstable.skim
       comma
       tldr
       dua

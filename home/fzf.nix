@@ -13,6 +13,7 @@ in
 
   programs.fzf = {
     enable = true;
+    enableZshIntegration = false;
     colors = {
       "gutter" = "#24273a";
     };

@@ -35,15 +35,17 @@
 # Plugins
 # {{{
     function zvm_after_init() {
-      bindkey "^[f" forward-word
-      bindkey "^[b" backward-word
-      bindkey "^[[1;3C" forward-word
-      bindkey "^[[1;3D" backward-word
-      bindkey "^d" delete-char
-      bindkey "d" kill-word
-      bindkey "^f" live_grep
+      zvm_bindkey viins '^[f' forward-word
+      zvm_bindkey viins '^[b' backward-word
+      zvm_bindkey viins '^[[1;3C' forward-word
+      zvm_bindkey viins '^[[1;3D' backward-word
+      zvm_bindkey viins '^d' delete-char
+      zvm_bindkey viins '^[d' kill-word
+      zvm_bindkey viins '^f' live_grep
 
-      zvm_bindkey viins '^R' fzf-history-widget;
+      zvm_bindkey viins '^T' skim-file-widget
+      zvm_bindkey viins '^R' skim-history-widget
+      zvm_bindkey viins '^[c' skim-cd-widget
 
       # navi cheatsheet widget (Ctrl-g)
       eval "$(navi widget zsh)"
