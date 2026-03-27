@@ -191,6 +191,13 @@ in
     "Vencord/themes/catppuccin.css".text = ''
       @import url("https://catppuccin.github.io/discord/dist/catppuccin-macchiato-sky.theme.css");
     '';
+    "environment.d/fcitx5.conf" = lib.mkIf pkgs.stdenv.isLinux {
+      text = ''
+        GTK_IM_MODULE=fcitx
+        QT_IM_MODULE=fcitx
+        XMODIFIERS=@im=fcitx
+      '';
+    };
   };
 
   catppuccin = {
