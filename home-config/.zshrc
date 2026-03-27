@@ -35,6 +35,13 @@ zinit light Aloxaf/fzf-tab
 ZVM_VI_ESCAPE_BINDKEY=kj
 zinit light jeffreytse/zsh-vi-mode
 
+# re-source 時 zvm_after_init 不會被重新呼叫，在外面補一份
+live_grep_widget() { bash ~/.config/zsh/autoload/live_grep }
+zle -N live_grep_widget
+bindkey '^F' live_grep_widget
+eval "$(navi widget zsh)"
+bindkey '^G' _navi_widget
+
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
