@@ -41,7 +41,7 @@
       zvm_bindkey viins '^[[1;3D' backward-word
       zvm_bindkey viins '^d' delete-char
       zvm_bindkey viins '^[d' kill-word
-      zvm_bindkey viins '^f' live_grep
+      bindkey '^f' live_grep
 
       zvm_bindkey viins '^T' skim-file-widget
       zvm_bindkey viins '^R' skim-history-widget
@@ -49,10 +49,15 @@
 
       # navi cheatsheet widget (Ctrl-g)
       eval "$(navi widget zsh)"
-      zvm_bindkey viins '^g' _navi_widget
+      bindkey '^g' _navi_widget
 
       autopair-init
     }
+
+    # zvm_after_init 在 re-source 時不會重新執行，所以在外面也綁一次
+    bindkey '^f' live_grep
+    eval "$(navi widget zsh)"
+    bindkey '^g' _navi_widget
 
     function zvm_config() {
       ZVM_KEYTIMEOUT=0.05
