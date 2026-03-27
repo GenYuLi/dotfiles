@@ -10,8 +10,17 @@ fi
 source ~/.local/share/zinit/zinit.git/zinit.zsh
 
 function zvm_after_init() {
-  bindkey -M viins '^R' fzf-history-widget
+  zvm_bindkey viins '^R' fzf-history-widget
+  zvm_bindkey viins '^T' fzf-file-widget
+  live_grep_widget() { bash ~/.config/zsh/autoload/live_grep }
+  zle -N live_grep_widget
+  zvm_bindkey viins '^F' live_grep_widget
   eval "$(navi widget zsh)"
+  zvm_bindkey viins '^G' _navi_widget
+  bindkey '^[[1;3C' forward-word
+  bindkey '^[[1;3D' backward-word
+  bindkey '^[[1;5C' forward-word
+  bindkey '^[[1;5D' backward-word
 }
 
 # 安裝插件
@@ -22,10 +31,9 @@ zinit light hlissner/zsh-autopair
 zinit light Tarrasch/zsh-bd
 #zinit light MenkeTechnologies/zsh-zsh
 zinit light Aloxaf/fzf-tab
-zinit light jeffreytse/zsh-vi-mode
-
+# vi-mode: must be set before loading
 ZVM_VI_ESCAPE_BINDKEY=kj
-#source ~/.local/share/zinit/plugins/jeffreytse---zsh-vi-mode/zsh-vi-mode.plugin.zsh
+zinit light jeffreytse/zsh-vi-mode
 
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
@@ -107,6 +115,8 @@ autoload -Uz compinit
 compinit
 
 source $ZSH/oh-my-zsh.sh
+# fix: oh-my-zsh bindkey -e resets `main` → emacs, breaking ^G in normal shell use
+bindkey -M emacs '^G' _navi_widget
 
 # User configuration
 
@@ -146,12 +156,6 @@ export PATH="$PATH:/opt/nvim/bin:/usr/local/go/bin"
 alias dc=cd
 export MANPAGER='/opt/nvim/bin/nvim +Man!'
 eval $(thefuck --alias)
-export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
-# Claude Code config — set tokens in ~/.local.zsh or environment, not here
-# export ANTHROPIC_BASE_URL=
-# export CLAUDE_CODE_OAUTH_TOKEN=
-# export CLAUDE_CONFIG_DIR=
-
 # pnpm
 export PNPM_HOME="/root/.local/share/pnpm"
 case ":$PATH:" in
@@ -160,5 +164,7 @@ case ":$PATH:" in
 esac
 # pnpm end
 
-alias workmac="ssh witherslin@REDACTED"
 export NAVI_PATH="$HOME/.config/navi:$HOME/.local/share/navi/cheats/"
+
+# Machine-specific settings (tokens, aliases, certs, etc.)
+[[ -f ~/.local.zsh ]] && source ~/.local.zsh

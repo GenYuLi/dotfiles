@@ -1,0 +1,16 @@
+# ~/.local.zsh — machine-specific settings, NOT tracked in git
+# Copy this to ~/.local.zsh and fill in values for your machine.
+
+# Certificates (common on corp machines)
+# export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
+
+# Claude Code / Anthropic
+# export ANTHROPIC_BASE_URL=
+# export CLAUDE_CODE_OAUTH_TOKEN=
+# export CLAUDE_CONFIG_DIR=
+
+# SSH aliases
+# alias workmac="ssh user@host"
+
+# Local PATH additions
+# export PATH="$PATH:/some/tool/bin"
