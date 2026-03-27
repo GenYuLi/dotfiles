@@ -19,7 +19,7 @@
     if (( $tmux_can_attach )) && (( $tmux_has_session )); then
       __tmux_auto_attach() {
         add-zsh-hook -d precmd __tmux_auto_attach
-        tmux a
+        [[ -t 0 ]] && tmux a
       }
       add-zsh-hook precmd __tmux_auto_attach
     fi
