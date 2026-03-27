@@ -7,6 +7,10 @@ description: Reviews any artifact (resume, code, design doc, architecture, PR) f
 
 Review any artifact through the eyes of legendary engineers. Each persona brings a distinct lens — the combination surfaces blind spots that no single perspective catches.
 
+## Input
+
+$ARGUMENTS
+
 ## How It Works
 
 1. Read the artifact the user wants reviewed
