@@ -199,7 +199,7 @@ in
     accent = "sky";
 
     glamour.enable = true;
-    mako.enable = builtins.pathExists "/etc/fedora-release" == false;
+    mako.enable = dotfiles.profile == "nixos";
   };
 
   programs.home-manager.enable = true;
@@ -315,7 +315,7 @@ in
   };
 
   services.mako = {
-    enable = pkgs.stdenv.isLinux && (builtins.pathExists "/etc/fedora-release" == false);
+    enable = dotfiles.profile == "nixos";
     settings = {
       default-timeout = 10000;
       anchor = "top-center";
