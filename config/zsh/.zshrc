@@ -51,6 +51,10 @@
       eval "$(navi widget zsh)"
       bindkey '^g' _navi_widget
 
+      # fuzzy job control (Alt+W = fg, Alt+S = bg)
+      zvm_bindkey viins '^[w' _fj_fg_widget
+      zvm_bindkey viins '^[s' _fj_bg_widget
+
       autopair-init
     }
 
@@ -58,6 +62,8 @@
     bindkey '^f' live_grep
     eval "$(navi widget zsh)"
     bindkey '^g' _navi_widget
+    bindkey '^[w' _fj_fg_widget
+    bindkey '^[s' _fj_bg_widget
 
     function zvm_config() {
       ZVM_KEYTIMEOUT=0.05
@@ -91,6 +97,38 @@
 
     }
     compdef _dirs d
+# }}}
+
+
+# Fuzzy job control (skim)
+# {{{
+    _fj_fg_widget() {
+      local tmpfile=${TMPDIR:-/tmp}/.zsh_jobs_$$
+      jobs > "$tmpfile" 2>/dev/null
+      local job
+      job=$(sk --height 40% --reverse < "$tmpfile" | grep -oP '^\[\K\d+')
+      command rm -f "$tmpfile"
+      if [[ -n "$job" ]]; then
+        BUFFER="fg %$job"
+        zle accept-line
+      fi
+      zle reset-prompt
+    }
+    zle -N _fj_fg_widget
+
+    _fj_bg_widget() {
+      local tmpfile=${TMPDIR:-/tmp}/.zsh_jobs_$$
+      jobs > "$tmpfile" 2>/dev/null
+      local job
+      job=$(sk --height 40% --reverse < "$tmpfile" | grep -oP '^\[\K\d+')
+      command rm -f "$tmpfile"
+      if [[ -n "$job" ]]; then
+        BUFFER="bg %$job"
+        zle accept-line
+      fi
+      zle reset-prompt
+    }
+    zle -N _fj_bg_widget
 # }}}
 
 
