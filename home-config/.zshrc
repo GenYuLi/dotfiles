@@ -17,10 +17,19 @@ function zvm_after_init() {
   zvm_bindkey viins '^F' live_grep_widget
   eval "$(navi widget zsh)"
   zvm_bindkey viins '^G' _navi_widget
-  bindkey '^[[1;3C' forward-word
-  bindkey '^[[1;3D' backward-word
-  bindkey '^[[1;5C' forward-word
-  bindkey '^[[1;5D' backward-word
+  bindkey -M viins '^[[1;3C' forward-word
+  bindkey -M viins '^[[1;3D' backward-word
+  bindkey -M viins '^[[1;5C' forward-word
+  bindkey -M viins '^[[1;5D' backward-word
+  # Home / End — cover all common terminal sequences
+  for m in viins vicmd; do
+    zvm_bindkey $m '^[[1~' beginning-of-line   # linux/vt
+    zvm_bindkey $m '^[[4~' end-of-line          # linux/vt
+    zvm_bindkey $m '^[[H'  beginning-of-line    # xterm
+    zvm_bindkey $m '^[[F'  end-of-line          # xterm
+    zvm_bindkey $m '^[OH'  beginning-of-line    # application mode
+    zvm_bindkey $m '^[OF'  end-of-line          # application mode
+  done
 }
 
 # 安裝插件
@@ -133,11 +142,8 @@ bindkey -M emacs '^G' _navi_widget
 # export LANG=en_US.UTF-8
 
 # Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
+export EDITOR='nvim'
+export VISUAL='nvim'
 
 # Compilation flags
 # export ARCHFLAGS="-arch x86_64"
