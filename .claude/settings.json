@@ -1,0 +1,19 @@
+{
+  "model": "opus[1m]",
+  "enabledPlugins": {
+    "code-review@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "synology-build-toolkit@synology-dev-kit": true,
+    "synology-workflows@synology-dev-kit": true,
+    "synology-package-dev@pct2-claude-code-marketplace": true,
+    "context7@claude-plugins-official": true,
+    "github@claude-plugins-official": true
+  },
+  "effortLevel": "high",
+  "tui": "fullscreen"
+}
