@@ -30,12 +30,14 @@ local function yank()
 
   local script_path = vim.fn.expand("~/.config/dotfiles/config/zsh/autoload/yank")
   vim.system({ script_path }, { stdin = vim.fn.getreg("0") }, function(result)
-    if result.code == 0 then
-      vim.notify("copied to clipboard")
-    else
-      local error_msg = result.stderr ~= "" and result.stderr or result.stdout
-      vim.notify("Failed to copy: " .. (error_msg or "unknown error"), vim.log.levels.ERROR)
-    end
+    vim.schedule(function()
+      if result.code == 0 then
+        vim.notify("copied to clipboard")
+      else
+        local error_msg = result.stderr ~= "" and result.stderr or result.stdout
+        vim.notify("Failed to copy: " .. (error_msg or "unknown error"), vim.log.levels.ERROR)
+      end
+    end)
   end)
 end
 

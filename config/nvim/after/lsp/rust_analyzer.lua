@@ -125,7 +125,7 @@ return {
       experimental = {
         -- 'procAttrMacros' 是對屬性宏的進一步支援，可以嘗試開啟
         procAttrMacros = true,
-      }
+      },
     },
   },
-}}
+}
