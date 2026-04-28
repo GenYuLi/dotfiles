@@ -9,10 +9,10 @@
     ./hardware.nix
     ./logiops.nix
     ./gaming.nix
-    ./idle.nix
     inputs.niri.nixosModules.niri
     inputs.nixos-hardware.nixosModules.asus-zephyrus-ga401
     inputs.flatpak.nixosModules.nix-flatpak
+    inputs.catppuccin.nixosModules.catppuccin
   ];
 
   boot = {
@@ -33,6 +33,12 @@
     device = "/var/swapfile";
     size = 16 * 1024; # 16GB
   }];
+
+  catppuccin = {
+    enable = true;
+    flavor = "mocha";
+    accent = "lavender";
+  };
 
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
@@ -139,9 +145,6 @@
     enable = true;
     binfmt = true;
   };
-
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
 
   programs.waybar = {
     enable = true;

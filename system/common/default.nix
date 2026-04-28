@@ -1,4 +1,4 @@
-{ pkgs, inputs, dotfiles, ... }:
+{ inputs, dotfiles, ... }:
 {
   home-manager = {
     users.${dotfiles.username} = import ../../home;
