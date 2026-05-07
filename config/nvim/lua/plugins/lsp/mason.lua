@@ -14,6 +14,7 @@ M.opts = {
     -- lsp
     "clangd",
     "lua-language-server",
+    "neocmakelsp",
     "nil",
     "pyright",
     "rust-analyzer",

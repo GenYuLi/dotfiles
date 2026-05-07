@@ -1,0 +1,7 @@
+% vpn
+
+# open vpn, Ctrl + Z to suspend the vpn process then use alt + S to run it to the foreground
+sudo openfortivpn
+
+# kill vpn
+sudo killall openfortivpn

@@ -96,6 +96,7 @@ let
     # sudo dnf install fcitx5 fcitx5-chewing fcitx5-configtool kcm-fcitx5 fcitx5-qt fcitx5-gtk
     if command -v fcitx5 &>/dev/null; then
       export GTK_IM_MODULE=fcitx
+      export QT_IM_MODULE=fcitx
       export XMODIFIERS=@im=fcitx
     fi
 

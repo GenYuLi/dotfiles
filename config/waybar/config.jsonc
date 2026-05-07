@@ -118,6 +118,8 @@
     "format-muted": "󰖁  0%",
     "on-click": "pactl set-sink-mute @DEFAULT_SINK@ toggle",
     "on-click-middle": "pavucontrol -t 3",
+    "on-scroll-up": "pactl get-sink-mute @DEFAULT_SINK@ | grep -q 'yes' && (pactl set-sink-mute @DEFAULT_SINK@ 0 && pactl set-sink-volume @DEFAULT_SINK@ 0%) || pactl set-sink-volume @DEFAULT_SINK@ +5%",
+    "on-scroll-down": "pactl set-sink-volume @DEFAULT_SINK@ -5%",
     "format-icons": {
       "headphone": "  ",
       "hands-free": "  ",

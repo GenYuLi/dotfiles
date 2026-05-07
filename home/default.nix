@@ -2,15 +2,6 @@
 let
   symlinkDotfiles = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles.directory}/${path}";
 
-  glow-without-completion = pkgs.glow.overrideAttrs
-    (oldAttrs: {
-      # glow with completion can't complete file path
-      # solution: remove the completion file
-      postFixup = ''
-        rm $out/share/zsh/site-functions/_glow
-      '';
-    });
-
   # NOTE: impure
   # isWSL = lib.strings.hasInfix "Microsoft" (builtins.readFile /proc/version);
 in
@@ -27,7 +18,9 @@ in
     ./cpp.nix
     inputs.nix-index-database.homeModules.nix-index
     inputs.catppuccin.homeModules.catppuccin
-  ];
+  ] ++ (lib.optionals (dotfiles.profile == "nixos") [
+    ../system/nixos/home.nix
+  ]);
 
   home = {
     stateVersion = "25.05";
@@ -124,7 +117,6 @@ in
       smassh
 
       # pretty stuff
-      glow-without-completion
       csvlens
       litecli
       nix-tree
@@ -183,7 +175,6 @@ in
   xdg.configFile = {
     "dotfiles".source = symlinkDotfiles ".";
     "nvim".source = symlinkDotfiles "config/nvim";
-    "glow".source = symlinkDotfiles "config/glow";
     "vim".source = symlinkDotfiles "config/vim";
     "navi".source = symlinkDotfiles "config/navi";
     "niri".source = symlinkDotfiles "config/niri";
@@ -191,6 +182,13 @@ in
     "Vencord/themes/catppuccin.css".text = ''
       @import url("https://catppuccin.github.io/discord/dist/catppuccin-macchiato-sky.theme.css");
     '';
+    "environment.d/fcitx5.conf" = lib.mkIf pkgs.stdenv.isLinux {
+      text = ''
+        GTK_IM_MODULE=fcitx
+        QT_IM_MODULE=fcitx
+        XMODIFIERS=@im=fcitx
+      '';
+    };
   };
 
   catppuccin = {
@@ -198,8 +196,7 @@ in
     flavor = "macchiato";
     accent = "sky";
 
-    glamour.enable = true;
-    mako.enable = builtins.pathExists "/etc/fedora-release" == false;
+    mako.enable = dotfiles.profile == "nixos";
   };
 
   programs.home-manager.enable = true;
@@ -301,6 +298,7 @@ in
     };
   };
 
+
   # for fast-syntax-highlighting
   programs.man.generateCaches = true;
 
@@ -313,16 +311,6 @@ in
       options = "--delete-older-than 30d";
     };
   };
-
-  services.mako = {
-    enable = pkgs.stdenv.isLinux && (builtins.pathExists "/etc/fedora-release" == false);
-    settings = {
-      default-timeout = 10000;
-      anchor = "top-center";
-    };
-  };
-
-  services.swayosd.enable = dotfiles.profile == "nixos";
 
   services.pueue = {
     enable = pkgs.stdenv.isLinux;

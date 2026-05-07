@@ -19,7 +19,7 @@
     if (( $tmux_can_attach )) && (( $tmux_has_session )); then
       __tmux_auto_attach() {
         add-zsh-hook -d precmd __tmux_auto_attach
-        tmux a
+        [[ -t 0 ]] && tmux a
       }
       add-zsh-hook precmd __tmux_auto_attach
     fi
@@ -35,24 +35,35 @@
 # Plugins
 # {{{
     function zvm_after_init() {
-      bindkey "^[f" forward-word
-      bindkey "^[b" backward-word
-      bindkey "^[[1;3C" forward-word
-      bindkey "^[[1;3D" backward-word
-      bindkey "^d" delete-char
-      bindkey "d" kill-word
-      zvm_bindkey viins '^f' live_grep;
+      zvm_bindkey viins '^[f' forward-word
+      zvm_bindkey viins '^[b' backward-word
+      zvm_bindkey viins '^[[1;3C' forward-word
+      zvm_bindkey viins '^[[1;3D' backward-word
+      zvm_bindkey viins '^d' delete-char
+      zvm_bindkey viins '^[d' kill-word
+      bindkey '^f' live_grep
 
-      zvm_bindkey viins '^T' skim-file-widget;
-      zvm_bindkey viins '^R' skim-history-widget;
-      zvm_bindkey viins '^[c' skim-cd-widget;
+      zvm_bindkey viins '^T' skim-file-widget
+      zvm_bindkey viins '^R' skim-history-widget
+      zvm_bindkey viins '^[c' skim-cd-widget
 
       # navi cheatsheet widget (Ctrl-g)
       eval "$(navi widget zsh)"
-      zvm_bindkey viins '^g' _navi_widget
+      bindkey '^g' _navi_widget
+
+      # fuzzy job control (Alt+W = fg, Alt+S = bg)
+      zvm_bindkey viins '^[w' _fj_fg_widget
+      zvm_bindkey viins '^[s' _fj_bg_widget
 
       autopair-init
     }
+
+    # zvm_after_init 在 re-source 時不會重新執行，所以在外面也綁一次
+    bindkey '^f' live_grep
+    eval "$(navi widget zsh)"
+    bindkey '^g' _navi_widget
+    bindkey '^[w' _fj_fg_widget
+    bindkey '^[s' _fj_bg_widget
 
     function zvm_config() {
       ZVM_KEYTIMEOUT=0.05
@@ -86,6 +97,38 @@
 
     }
     compdef _dirs d
+# }}}
+
+
+# Fuzzy job control (skim)
+# {{{
+    _fj_fg_widget() {
+      local tmpfile=${TMPDIR:-/tmp}/.zsh_jobs_$$
+      jobs > "$tmpfile" 2>/dev/null
+      local job
+      job=$(sk --height 40% --reverse < "$tmpfile" | grep -oP '^\[\K\d+')
+      command rm -f "$tmpfile"
+      if [[ -n "$job" ]]; then
+        BUFFER="fg %$job"
+        zle accept-line
+      fi
+      zle reset-prompt
+    }
+    zle -N _fj_fg_widget
+
+    _fj_bg_widget() {
+      local tmpfile=${TMPDIR:-/tmp}/.zsh_jobs_$$
+      jobs > "$tmpfile" 2>/dev/null
+      local job
+      job=$(sk --height 40% --reverse < "$tmpfile" | grep -oP '^\[\K\d+')
+      command rm -f "$tmpfile"
+      if [[ -n "$job" ]]; then
+        BUFFER="bg %$job"
+        zle accept-line
+      fi
+      zle reset-prompt
+    }
+    zle -N _fj_bg_widget
 # }}}
 
 
