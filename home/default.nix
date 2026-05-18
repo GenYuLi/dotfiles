@@ -16,6 +16,7 @@ in
     ./ghostty.nix
     ./desktop.nix
     ./cpp.nix
+    ./nixd.nix
     inputs.nix-index-database.homeModules.nix-index
     inputs.catppuccin.homeModules.catppuccin
   ] ++ (lib.optionals (dotfiles.profile == "nixos") [
@@ -78,7 +79,7 @@ in
 
       # editor
       unstable.neovim
-      tree-sitter
+      unstable.tree-sitter
       unzip
       nodejs
 
@@ -106,7 +107,8 @@ in
       poetry
       python315
       nixpkgs-fmt
-      nixfmt-rfc-style
+      nixfmt
+      unstable.nixd
 
       # network
       httpie
@@ -122,6 +124,7 @@ in
       nix-tree
 
       navi
+      newsboat
 
       # misc
       nix-search-cli
@@ -143,6 +146,7 @@ in
       # feels like it's causing p10k to not display correctly
       LANG = "en_US.UTF-8";
       LC_CTYPE = "en_US.UTF-8";
+      LANGUAGE = "en_US";
       EDITOR = "nvim";
       VISUAL = EDITOR;
       MANPAGER = "nvim +Man!";
@@ -179,6 +183,8 @@ in
     "navi".source = symlinkDotfiles "config/navi";
     "niri".source = symlinkDotfiles "config/niri";
     "waybar".source = symlinkDotfiles "config/waybar";
+    "newsboat/config".source = symlinkDotfiles "config/newsboat/config";
+    "newsboat/themes/catppuccin".source = "${config.catppuccin.sources.newsboat}/dark";
     "Vencord/themes/catppuccin.css".text = ''
       @import url("https://catppuccin.github.io/discord/dist/catppuccin-macchiato-sky.theme.css");
     '';
