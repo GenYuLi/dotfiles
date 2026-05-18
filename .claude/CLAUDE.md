@@ -30,3 +30,7 @@ When the user asks "how do I do X" or asks for an explanation — explain first,
 - Every sentence earns its place. No filler.
 - Diagrams must be verified against actual code — wrong is worse than none.
 - If you don't know, say so.
+
+## Tooling
+
+- **Prefer `rg` (ripgrep) over `grep`.** Faster, respects `.gitignore`, better defaults. Only fall back to `grep` if `rg` is unavailable on the host (verify with `command -v rg` if uncertain).
