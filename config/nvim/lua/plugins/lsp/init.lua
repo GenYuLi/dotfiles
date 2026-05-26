@@ -1,6 +1,6 @@
 local M = {
   "neovim/nvim-lspconfig",
-  cmd = { "Mason", "LspInfo" },
+  cmd = { "Mason" },
   event = "VeryLazy",
   dependencies = {
     "williamboman/mason-lspconfig.nvim",
@@ -50,7 +50,13 @@ function M.config()
     capabilities = capabilities,
   })
 
-  require("mason-lspconfig").setup()
+  -- rust_analyzer is managed by rustaceanvim; exclude from auto-enable
+  -- to avoid double-attach (mason-lspconfig would otherwise spawn a
+  -- second client named "rust_analyzer" alongside rustaceanvim's
+  -- "rust-analyzer" client).
+  require("mason-lspconfig").setup {
+    automatic_enable = { exclude = { "rust_analyzer" } },
+  }
 
   -- enable all lsp by default
   vim.schedule(function()
@@ -88,6 +94,20 @@ function M.config()
       source = "if_many",
     },
   }
+
+  -- Legacy :Lsp* commands were removed when nvim-lspconfig migrated to
+  -- Neovim 0.11's native LSP API. Thin shims preserve finger memory.
+  vim.api.nvim_create_user_command("LspInfo", function()
+    vim.cmd("checkhealth vim.lsp")
+  end, { desc = "Show LSP status (→ :checkhealth vim.lsp)" })
+
+  vim.api.nvim_create_user_command("LspRestart", function()
+    local bufnr = vim.api.nvim_get_current_buf()
+    for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+      client:stop()
+    end
+    vim.defer_fn(function() vim.cmd("edit") end, 100)
+  end, { desc = "Restart LSP clients for current buffer" })
 end
 
 return M
