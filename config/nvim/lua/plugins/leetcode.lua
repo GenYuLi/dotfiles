@@ -1,33 +1,9 @@
--- Override the hardcoded "LEETCODE" ascii banner before any page module
--- loads it. menu-header.lua returns an *instance*, so we replace it the
--- same way. Done in a `config` function so it runs before setup() and
--- before pages require the header.
-local function override_banner()
-  local banner = {
-    [[██╗    ██╗██╗████████╗██╗  ██╗███████╗██████╗ ███████╗]],
-    [[██║    ██║██║╚══██╔══╝██║  ██║██╔════╝██╔══██╗██╔════╝]],
-    [[██║ █╗ ██║██║   ██║   ███████║█████╗  ██████╔╝███████╗]],
-    [[██║███╗██║██║   ██║   ██╔══██║██╔══╝  ██╔══██╗╚════██║]],
-    [[╚███╔███╔╝██║   ██║   ██║  ██║███████╗██║  ██║███████║]],
-    [[ ╚══╝╚══╝ ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝]],
-  }
-  local Lines = require("leetcode-ui.lines")
-  local Header = Lines:extend("LeetMenuHeader")
-  function Header:init()
-    Header.super.init(self, {}, { hl = "Keyword" })
-    for _, line in ipairs(banner) do
-      self:append(line):endl()
-    end
-  end
-  package.loaded["leetcode-ui.lines.menu-header"] = Header()
-end
-
 return {
   "kawre/leetcode.nvim",
   build = ":TSUpdate html",
-  cmd = "Leet",
+  cmd = { "Leet", "LeetGoogle" },
   config = function(_, opts)
-    override_banner()
+    require("withers.leet_patches").apply()
     require("leetcode").setup(opts)
   end,
   opts = {
