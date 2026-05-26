@@ -34,7 +34,7 @@
       };
       user = {
         name = "GenYuLi";
-        email = "hank90555@gmail.com";
+        email = "witherslin@gmail.com";
       };
       alias = {
         undo = "reset HEAD@{1}";
