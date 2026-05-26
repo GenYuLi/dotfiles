@@ -4,7 +4,7 @@
 
 local function rust_runnables()
   local bufnr = vim.api.nvim_get_current_buf()
-  local clients = vim.lsp.get_clients({ bufnr = bufnr, name = "rust_analyzer" })
+  local clients = vim.lsp.get_clients({ bufnr = bufnr, name = "rust-analyzer" })
   if #clients == 0 then
     vim.notify("No rust-analyzer attached", vim.log.levels.WARN)
     return
@@ -104,7 +104,7 @@ return {
           -- <leader>rt: run test under cursor via experimental/runnables
           vim.keymap.set("n", "<leader>rt", function()
             local bufnr = vim.api.nvim_get_current_buf()
-            local clients = vim.lsp.get_clients({ bufnr = bufnr, name = "rust_analyzer" })
+            local clients = vim.lsp.get_clients({ bufnr = bufnr, name = "rust-analyzer" })
             if #clients == 0 then
               vim.notify("No rust-analyzer attached", vim.log.levels.WARN)
               return
@@ -148,31 +148,10 @@ return {
               }):toggle()
             end)
           end, opts("Rust: run test under cursor"))
-          -- <leader>re: rustc --explain for error code under cursor or from diagnostic
+          -- <leader>re: explain error (rustaceanvim — floating window, cycles diagnostics)
           vim.keymap.set("n", "<leader>re", function()
-            -- rust-analyzer puts the error code in diagnostic.code, not .message
-            local code
-            local diags = vim.diagnostic.get(0, { lnum = vim.fn.line(".") - 1 })
-            for _, d in ipairs(diags) do
-              if d.code then
-                code = tostring(d.code):match("[Ee]%d+")
-                if code then break end
-              end
-            end
-            -- fallback: word under cursor (e.g. manually typed E0308)
-            if not code then
-              code = vim.fn.expand("<cWORD>"):match("[Ee]%d+")
-            end
-            if not code then
-              vim.notify("No Rust error code found", vim.log.levels.WARN)
-              return
-            end
-            require("toggleterm.terminal").Terminal:new({
-              cmd = "rustc --explain " .. code:upper(),
-              direction = "float",
-              close_on_exit = false,
-            }):toggle()
-          end, opts("Rust: explain error code"))
+            vim.cmd.RustLsp("explainError")
+          end, opts("Rust: explain error"))
           -- <leader>rb: cargo build
           vim.keymap.set("n", "<leader>rb", function()
             vim.cmd('TermExec cmd="cargo build"')
@@ -181,10 +160,40 @@ return {
           vim.keymap.set("n", "<leader>rc", function()
             vim.cmd('TermExec cmd="cargo check"')
           end, opts("Rust: cargo check"))
-          -- <leader>rx: cargo clippy
-          vim.keymap.set("n", "<leader>rx", function()
+          -- <leader>rC: cargo Clippy (uppercase C; lowercase c is cargo check)
+          vim.keymap.set("n", "<leader>rC", function()
             vim.cmd('TermExec cmd="cargo clippy"')
           end, opts("Rust: cargo clippy"))
+          -- <leader>rh: view HIR (high-level IR) of function under cursor
+          vim.keymap.set("n", "<leader>rh", function()
+            vim.cmd.RustLsp({ "view", "hir" })
+          end, opts("Rust: view HIR"))
+          -- <leader>rm: view MIR (mid-level IR) of function under cursor
+          vim.keymap.set("n", "<leader>rm", function()
+            vim.cmd.RustLsp({ "view", "mir" })
+          end, opts("Rust: view MIR"))
+          -- <leader>rx: eXpand macro under cursor recursively
+          vim.keymap.set("n", "<leader>rx", function()
+            vim.cmd.RustLsp("expandMacro")
+          end, opts("Rust: expand macro"))
+          -- <leader>rM: dump MIR via real rustc (covers cases r-a's view MIR
+          -- can't handle, e.g. format_args! family macros). Output lands in
+          -- target/debug/deps/*.mir. vim.ui.input lets you append --bin X
+          -- for multi-bin packages before running.
+          vim.keymap.set("n", "<leader>rM", function()
+            local default_cmd = "cargo rustc -- --emit=mir"
+            vim.ui.input(
+              { prompt = "Dump MIR: ", default = default_cmd },
+              function(input)
+                if not input or input == "" then return end
+                require("toggleterm.terminal").Terminal:new({
+                  cmd = input,
+                  direction = "float",
+                  close_on_exit = false,
+                }):toggle()
+              end
+            )
+          end, opts("Rust: dump MIR via rustc"))
         end,
       })
     end,
