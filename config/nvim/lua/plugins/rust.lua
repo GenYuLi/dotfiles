@@ -164,6 +164,24 @@ return {
           vim.keymap.set("n", "<leader>rC", function()
             vim.cmd('TermExec cmd="cargo clippy"')
           end, opts("Rust: cargo clippy"))
+          -- Standalone single-file workflow (no Cargo.toml): drives `rustc`
+          -- directly, drops the binary in /tmp. <leader>rB builds only,
+          -- <leader>rR builds + runs.
+          local function standalone_cmd(run)
+            local file = vim.fn.expand("%:p")
+            local out = "/tmp/" .. vim.fn.expand("%:t:r")
+            local cmd = "rustc " .. vim.fn.shellescape(file) .. " -o " .. vim.fn.shellescape(out)
+            if run then
+              cmd = cmd .. " && " .. vim.fn.shellescape(out)
+            end
+            require("toggleterm.terminal").Terminal:new({
+              cmd = cmd,
+              direction = "float",
+              close_on_exit = false,
+            }):toggle()
+          end
+          vim.keymap.set("n", "<leader>rB", function() standalone_cmd(false) end, opts("Rust: standalone build"))
+          vim.keymap.set("n", "<leader>rR", function() standalone_cmd(true) end, opts("Rust: standalone build & run"))
           -- <leader>rh: view HIR (high-level IR) of function under cursor
           vim.keymap.set("n", "<leader>rh", function()
             vim.cmd.RustLsp({ "view", "hir" })
