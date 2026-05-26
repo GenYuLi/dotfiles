@@ -200,6 +200,7 @@ in
     "vim".source = symlinkDotfiles "config/vim";
     "navi".source = symlinkDotfiles "config/navi";
     "newsboat/config".source = symlinkDotfiles "config/newsboat/config";
+    "zsh/autoload/fuzzy-job.zsh".source = symlinkDotfiles "config/zsh/autoload/fuzzy-job.zsh";
     "newsboat/themes/catppuccin".source = "${config.catppuccin.sources.newsboat}/dark";
     "Vencord/themes/catppuccin.css".text = ''
       @import url("https://catppuccin.github.io/discord/dist/catppuccin-macchiato-sky.theme.css");
