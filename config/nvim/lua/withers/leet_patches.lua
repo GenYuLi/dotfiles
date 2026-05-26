@@ -10,6 +10,9 @@
 --      favorite list (Premium required).
 --   3. Inside the picker: ctrl-t filters by topic tag, ctrl-r clears.
 --   4. Expose :LeetGoogle [window] (bang = bust cache) for the same picker
+--   5. Route Rust questions into per-question Cargo crates so
+--      rust-analyzer attaches with full project semantics instead of
+--      standalone mode.
 --
 -- The picker reuses leetcode.nvim's own GraphQL helper (auth + retry)
 -- and caches responses for 24h under stdpath("cache")/leetcode-company.
@@ -413,6 +416,93 @@ local function override_google_page()
 
   package.loaded["leetcode-ui.group.page.google"] = page
 end
+
+-- ======================================================================
+-- Rust per-question crate: rust-analyzer attaches as a proper crate
+-- instead of degraded standalone mode.
+--
+-- For Rust questions only, route the file into a per-question Cargo
+-- crate layout:
+--
+--   <storage>/<id>.<slug>-rust/
+--     Cargo.toml          minimal [package] manifest
+--     src/lib.rs          the solution (lib crate, no fn main needed —
+--                         leetcode snippets are impl-only)
+--
+-- Legacy flat `<storage>/<id>.<slug>.rs` is migrated on first open
+-- (content copied into lib.rs, the flat file removed).
+-- ======================================================================
+
+local CARGO_TOML_TEMPLATE = [[
+[package]
+name = "%s"
+version = "0.1.0"
+edition = "2021"
+]]
+
+-- Idempotent: leetcode's `enter` hook fires on every menu open, but we
+-- only need to monkey-patch the Question class once.
+local rust_patched = false
+
+local function override_rust_path()
+  if rust_patched then
+    return
+  end
+  -- IMPORTANT: this must run AFTER leetcode.start() (which is what
+  -- finally calls config.setup() and populates config.storage). Calling
+  -- it earlier crashes because `leetcode-ui.question` transitively
+  -- requires `leetcode.cache.cookie`, which reads config.storage.cache
+  -- at module-load time. The `enter` hook satisfies that ordering.
+  local Question = require("leetcode-ui.question")
+  local config = require("leetcode.config")
+  local utils = require("leetcode.utils")
+
+  local orig_path = Question.path
+
+  function Question:path()
+    if self.lang ~= "rust" then
+      return orig_path(self)
+    end
+
+    local lang = utils.get_lang(self.lang)
+    local id = tostring(self.q.frontend_id)
+    local slug = self.q.title_slug
+
+    local crate_dir = config.storage.home:joinpath(("%s.%s-rust"):format(id, slug))
+    local src_dir = crate_dir:joinpath("src")
+    local rs_file = src_dir:joinpath("lib.rs")
+    local cargo_toml = crate_dir:joinpath("Cargo.toml")
+    local legacy = config.storage.home:joinpath(("%s.%s.%s"):format(id, slug, lang.ft))
+
+    crate_dir:mkdir { parents = true, exists_ok = true }
+    src_dir:mkdir { parents = true, exists_ok = true }
+
+    if not cargo_toml:exists() then
+      local pkg = ("lc-%s-%s"):format(id, slug:gsub("[^%w_-]", "-"))
+      cargo_toml:write(CARGO_TOML_TEMPLATE:format(pkg), "w")
+    end
+
+    local existed = rs_file:exists()
+    if not existed then
+      if legacy:exists() then
+        rs_file:write(legacy:read(), "w")
+        legacy:rm()
+        existed = true
+      else
+        rs_file:write(self:snippet(), "w")
+      end
+    end
+
+    self.file = rs_file
+    return rs_file:absolute(), existed
+  end
+
+  rust_patched = true
+end
+
+-- Exposed so the plugin spec's `enter` hook can wire it in; the hook
+-- is the earliest point at which leetcode.config.storage exists.
+M.apply_rust_patch = override_rust_path
 
 -- ======================================================================
 -- Entry point
