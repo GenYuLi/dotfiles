@@ -16,7 +16,9 @@ link() {
         echo "  backup  $dst → $dst.bak"
         mv "$dst" "$dst.bak"
     fi
-    ln -sf "$src" "$dst"
+    # -n: do not dereference dst if it's a symlink to a directory
+    # (else ln walks into the target dir and creates dst/<basename>)
+    ln -sfn "$src" "$dst"
     echo "  link  $dst → $src"
 }
 
@@ -30,6 +32,19 @@ link "$DOTFILES/config/zsh"  "$HOME/.config/zsh"
 link "$DOTFILES/config/nvim" "$HOME/.config/nvim"
 link "$DOTFILES/config/tmux" "$HOME/.config/tmux"
 link "$DOTFILES/config/navi" "$HOME/.config/navi"
+
+echo "==> Claude config"
+# Honor CLAUDE_CONFIG_DIR (e.g. /synosrc/claude_config); else default ~/.claude.
+# settings.local.json and gsd-* stay per-machine and are .gitignore'd, so we
+# only link the shared bits — Claude merges settings.local.json on top.
+CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+CLAUDE_DIR="${CLAUDE_DIR%/}"
+mkdir -p "$CLAUDE_DIR"
+link "$DOTFILES/.claude/CLAUDE.md"     "$CLAUDE_DIR/CLAUDE.md"
+link "$DOTFILES/.claude/commands"      "$CLAUDE_DIR/commands"
+link "$DOTFILES/.claude/skills"        "$CLAUDE_DIR/skills"
+link "$DOTFILES/.claude/agents"        "$CLAUDE_DIR/agents"
+link "$DOTFILES/.claude/settings.json" "$CLAUDE_DIR/settings.json"
 
 echo "==> ~/.local.zsh"
 if [[ ! -f "$HOME/.local.zsh" ]]; then
