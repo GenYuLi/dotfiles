@@ -134,6 +134,9 @@ source $ZSH/oh-my-zsh.sh
 # fix: oh-my-zsh bindkey -e resets `main` → emacs, breaking ^G in normal shell use
 bindkey -M emacs '^G' _navi_widget
 
+# Alt+W = fuzzy fg, Alt+S = fuzzy bg (sk-backed picker for suspended jobs)
+source ~/.config/zsh/autoload/fuzzy-job.zsh
+
 # User configuration
 
 # export MANPATH="/usr/local/man:$MANPATH"
