@@ -17,7 +17,8 @@ function M.config()
         reveal = { "close" },
       },
     },
-    highlights = require("catppuccin.special.bufferline").get_theme(),
+    -- Disabled for gruvbox trial. Re-enable to revert. See plugins/gruvbox.lua.
+    -- highlights = require("catppuccin.special.bufferline").get_theme(),
   }
 end
 
