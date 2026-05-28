@@ -46,6 +46,14 @@ M.start_lsp = function()
 end
 
 M.stop_lsp = function()
+  -- `:lsp stop` (nvim 0.12 builtin) is current-buffer scoped and errors
+  -- ("No clients attached to current buffer") when none are attached. This
+  -- fires on VimLeavePre → SessionSavePost → stop_lsp during exit, where the
+  -- current buffer (e.g. a leetcode scratch/no-LSP buffer) often has no
+  -- client. Skip when there's nothing to stop.
+  if next(vim.lsp.get_clients({ bufnr = 0 })) == nil then
+    return
+  end
   vim.cmd.lsp("stop")
 end
 
