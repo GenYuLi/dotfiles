@@ -440,6 +440,17 @@ version = "0.1.0"
 edition = "2021"
 ]]
 
+-- Virtual manifest at the storage root. Without it rust-analyzer pins to
+-- whichever per-question crate it discovers first and every other
+-- question opens as an unlinked-file (no IDE services). The glob member
+-- auto-includes new `<id>.<slug>-rust` crates, so there's no list to
+-- maintain.
+local WORKSPACE_TOML = [[
+[workspace]
+resolver = "2"
+members = ["*-rust"]
+]]
+
 -- Idempotent: leetcode's `enter` hook fires on every menu open, but we
 -- only need to monkey-patch the Question class once.
 local rust_patched = false
@@ -476,6 +487,13 @@ local function override_rust_path()
 
     crate_dir:mkdir { parents = true, exists_ok = true }
     src_dir:mkdir { parents = true, exists_ok = true }
+
+    -- Ensure the storage root is a Cargo workspace so rust-analyzer loads
+    -- every per-question crate at once instead of pinning to one.
+    local ws_toml = config.storage.home:joinpath("Cargo.toml")
+    if not ws_toml:exists() then
+      ws_toml:write(WORKSPACE_TOML, "w")
+    end
 
     if not cargo_toml:exists() then
       local pkg = ("lc-%s-%s"):format(id, slug:gsub("[^%w_-]", "-"))
