@@ -35,41 +35,53 @@ return {
           require("copilot.command").disable()
           vim.g.copilot_disabled = true
           vim.g.autoformat = true
+        end,
+      },
+      -- Fires once the question's code buffer is mounted (question.lua
+      -- passes us the Question, q.bufnr = that code buffer). Scope the leet
+      -- action keys buffer-local here rather than global: global mappings
+      -- lose to toggleterm whenever it gets lazy-loaded (e.g. <leader>rB/rR
+      -- in rust.lua `require`s toggleterm.terminal, which makes lazy.nvim
+      -- re-register its `keys` spec and stomp the global leet binds).
+      -- Buffer-local always wins. `question_enter` (vs a BufEnter+path
+      -- match) means the maps exist the instant the buffer is first shown,
+      -- with no race over when the buffer becomes current.
+      ["question_enter"] = {
+        function(q)
+          local buf = q.bufnr
+          if not buf or not vim.api.nvim_buf_is_valid(buf) then
+            return
+          end
+          local opts = function(desc) return { buffer = buf, desc = desc } end
+          vim.keymap.set("n", "<leader>cc", "<cmd>Leet run<cr>", opts("Leetcode run testcase"))
+          vim.keymap.set("n", "<leader>cp", "<cmd>Leet submit<cr>", opts("Leetcode submit"))
+          vim.keymap.set("n", "<leader>cl", "<cmd>Leet lang<cr>", opts("Leetcode change language"))
+          vim.keymap.set("n", [[<c-\>]], "<cmd>Leet console<cr>", opts("Leetcode console"))
 
-          -- Scope these as buffer-local on the leetcode question buffer,
-          -- not global. Global mappings here lose to toggleterm whenever
-          -- it gets lazy-loaded (e.g. via <leader>rB/rR in rust.lua, which
-          -- `require`s toggleterm.terminal): lazy.nvim re-registers its
-          -- `keys` spec on plugin load and stomps the global leet binds.
-          -- Buffer-local always wins over global, so scoping fixes it.
-          local storage = require("leetcode.config").storage.home:absolute()
-          if storage:sub(-1) ~= "/" then
-            storage = storage .. "/"
+          -- which-key (v3) builds a buffer's <space> trigger from the
+          -- buffer-local <leader> maps present at build time, and rebuilds
+          -- on BufEnter/BufReadPost/LspAttach. We add the maps here — at
+          -- handle_mount's end, AFTER which-key already built this buffer —
+          -- and rust-analyzer's async LspAttach then CLEARS the buffer's
+          -- triggers with no rebuild until the next access. In that window
+          -- the buffer-local <leader> maps exist but which-key has no
+          -- buffer-local <space> trigger, so its global trigger is shadowed
+          -- by them and the popup never shows until you nudge it (mode
+          -- change, re-enter). Force a rebuild now and once more after LSP
+          -- attaches. pcall: which-key.buf is internal, degrade gracefully.
+          local function wk_refresh()
+            pcall(function()
+              require("which-key.buf").get({ buf = buf, update = true })
+            end)
           end
-          local function apply(buf)
-            local opts = function(desc) return { buffer = buf, desc = desc } end
-            vim.keymap.set("n", "<leader>cc", "<cmd>Leet run<cr>", opts("Leetcode run testcase"))
-            vim.keymap.set("n", "<leader>cp", "<cmd>Leet submit<cr>", opts("Leetcode submit"))
-            vim.keymap.set("n", "<leader>cl", "<cmd>Leet lang<cr>", opts("Leetcode change language"))
-            vim.keymap.set("n", [[<c-\>]], "<cmd>Leet console<cr>", opts("Leetcode console"))
-          end
-          local augroup = vim.api.nvim_create_augroup("WithersLeetBufKeymaps", { clear = true })
-          vim.api.nvim_create_autocmd("BufEnter", {
-            group = augroup,
-            callback = function(args)
-              local fname = vim.api.nvim_buf_get_name(args.buf)
-              if fname ~= "" and vim.startswith(fname, storage) then
-                apply(args.buf)
-              end
+          vim.schedule(wk_refresh)
+          vim.api.nvim_create_autocmd("LspAttach", {
+            group = vim.api.nvim_create_augroup("WithersLeetWkRefresh_" .. buf, { clear = true }),
+            buffer = buf,
+            callback = function()
+              vim.schedule(wk_refresh)
             end,
           })
-          -- Cover the case where a leet question buffer is already current
-          -- when `enter` re-fires (BufEnter wouldn't fire for it again).
-          local cur = vim.api.nvim_get_current_buf()
-          local cur_name = vim.api.nvim_buf_get_name(cur)
-          if cur_name ~= "" and vim.startswith(cur_name, storage) then
-            apply(cur)
-          end
         end,
       },
     },
