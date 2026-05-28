@@ -78,7 +78,8 @@ function M.config()
       },
     },
   }
-  vim.cmd.colorscheme("catppuccin")
+  -- Disabled for gruvbox trial. Re-enable to revert. See plugins/gruvbox.lua.
+  -- vim.cmd.colorscheme("catppuccin")
 end
 
 -- "folke/tokyonight.nvim",

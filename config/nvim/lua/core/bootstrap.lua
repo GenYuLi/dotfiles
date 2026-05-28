@@ -16,7 +16,7 @@ require("core.utils").lazy_file()
 
 require("lazy").setup("plugins", {
   install = {
-    colorscheme = { "catppuccin", "habamax" },
+    colorscheme = { "gruvbox-material", "gruvbox", "catppuccin", "habamax" },
   },
   ui = {
     border = "rounded",
