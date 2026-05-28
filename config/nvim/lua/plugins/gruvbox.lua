@@ -36,15 +36,60 @@ function M.config()
   vim.cmd.colorscheme("gruvbox-material")
 
   -- Highlight overrides applied on top of gruvbox-material defaults.
-  --   * `@parameter` — back-compat shim for heirline.lua, which reads this
-  --     deprecated (pre-nvim-0.10) group for its `red` color.
-  --   * `@variable.member` — color struct fields explicitly. Gruvbox defaults
-  --     blend them into the foreground; this picks them out in blue (mirrors
-  --     the Catppuccin habit of lavender struct fields, mapped to a blue tone
-  --     that fits the gruvbox-material material palette).
+  -- gruvbox-material material palette (hex):
+  --   red    #ea6962   yellow #d8a657   blue   #7daea3   green #a9b665
+  --   orange #e78a4e   purple #d3869b   aqua   #89b482
+  --
+  -- Defaults route the keyword family to three different colors, which
+  -- visibly fractures a `pub fn` block. catppuccin-macchiato unifies the
+  -- whole verb column to one mauve; mirror that on gruvbox's red:
+  --   * @keyword / @keyword.function / @keyword.return /
+  --     @keyword.import / @keyword.conditional / @keyword.repeat → Red ✓
+  --   * @keyword.operator (in, as, is, dyn)                      → Orange → Red
+  --   * @keyword.storage  (let, mut, const, static)              → Orange → Red
+  --   * @type.qualifier   (`pub` via treesitter)                 → Orange → Red
+  --   * @lsp.type.modifier (`pub`/`mut`/`async` via rust-analyzer
+  --     semantic tokens — beats treesitter, this is the actually-
+  --     visible color in attached rust buffers)                  → Orange → Red
+  --
+  -- @variable.parameter defaults to Fg (no distinction from regular text).
+  -- catppuccin gives parameter names a maroon tint distinct from types;
+  -- gruvbox-material's purple (#d3869b) is the temperament match — pinkish,
+  -- doesn't collide with type-yellow or member-blue.
+  --
+  -- @parameter is a back-compat shim for heirline.lua, which still reads
+  -- the pre-nvim-0.10 capture name for its `red` slot.
+  -- @variable.member picks struct fields out of the foreground in blue
+  -- (catppuccin habit of lavender fields, mapped onto gruvbox-material's blue).
   local function apply_highlights()
     vim.api.nvim_set_hl(0, "@parameter", { link = "@variable.parameter" })
     vim.api.nvim_set_hl(0, "@variable.member", { fg = "#7daea3" })
+
+    for _, group in ipairs({
+      "@keyword.operator",
+      "@keyword.storage",
+      "@type.qualifier",
+      "@lsp.type.modifier",
+    }) do
+      vim.api.nvim_set_hl(0, group, { link = "@keyword" })
+    end
+
+    vim.api.nvim_set_hl(0, "@variable.parameter", { fg = "#d3869b" })
+    vim.api.nvim_set_hl(0, "@lsp.type.parameter", { link = "@variable.parameter" })
+
+    -- Namespace path segments (std/option, crate & module names). gruvbox
+    -- routes @module/@namespace/@lsp.type.namespace to YellowItalic, but
+    -- enable_italic=0 defines YellowItalic WITHOUT italic, so they render
+    -- upright — unlike catppuccin, where @lsp.type.namespace → @module is
+    -- italic. Re-add italic on just these groups (yellow kept) instead of
+    -- flipping the global gruvbox_material_enable_italic (which would also
+    -- italicise keywords/types/etc.). The priority-127 semantic winner
+    -- @lsp.typemod.namespace.* links to a cleared @lsp, so the priority-125
+    -- @lsp.type.namespace below shows through.
+    local ns_italic = { fg = "#d8a657", italic = true }
+    vim.api.nvim_set_hl(0, "@module", ns_italic)
+    vim.api.nvim_set_hl(0, "@namespace", ns_italic)
+    vim.api.nvim_set_hl(0, "@lsp.type.namespace", ns_italic)
   end
 
   vim.api.nvim_create_autocmd("ColorScheme", {
