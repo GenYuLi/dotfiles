@@ -169,7 +169,16 @@ return {
           -- <leader>rR builds + runs.
           local function standalone_cmd(run)
             local file = vim.fn.expand("%:p")
-            local out = "/tmp/" .. vim.fn.expand("%:t:r")
+            -- Name the output after the file stem. But the leetcode
+            -- per-question crate layout makes every file `src/lib.rs`, so
+            -- the stem collapses to "lib" and collides across questions in
+            -- /tmp — fall back to the crate dir name (e.g. 3093.<slug>-rust)
+            -- for the generic lib.rs/main.rs case.
+            local stem = vim.fn.expand("%:t:r")
+            if stem == "lib" or stem == "main" then
+              stem = vim.fn.expand("%:p:h:h:t")
+            end
+            local out = "/tmp/" .. stem
             local cmd = "rustc " .. vim.fn.shellescape(file) .. " -o " .. vim.fn.shellescape(out)
             if run then
               cmd = cmd .. " && " .. vim.fn.shellescape(out)
