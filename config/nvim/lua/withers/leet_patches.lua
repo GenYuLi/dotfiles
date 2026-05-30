@@ -451,6 +451,28 @@ resolver = "2"
 members = ["*-rust"]
 ]]
 
+-- LeetCode's Rust templates are `impl Solution { … }` with no
+-- `struct Solution;`, so they don't compile in our per-question crate.
+-- Inject the declaration as LOCAL scaffolding *before* the `@leet start`
+-- marker — outside the submitted region, because LeetCode's own judge
+-- defines Solution and a duplicate inside the markers would fail on
+-- submit. Skip when the snippet already declares Solution (some design
+-- problems do) or isn't a Solution-style problem.
+local function rust_scaffold(snippet)
+  if snippet:match("struct%s+Solution") or snippet:match("enum%s+Solution") then
+    return snippet
+  end
+  if not snippet:match("impl%s+Solution") then
+    return snippet
+  end
+  local decl = "struct Solution;\n\n"
+  local marker = snippet:find("//%s*@leet start")
+  if marker then
+    return snippet:sub(1, marker - 1) .. decl .. snippet:sub(marker)
+  end
+  return decl .. snippet
+end
+
 -- Idempotent: leetcode's `enter` hook fires on every menu open, but we
 -- only need to monkey-patch the Question class once.
 local rust_patched = false
@@ -507,7 +529,7 @@ local function override_rust_path()
         legacy:rm()
         existed = true
       else
-        rs_file:write(self:snippet(), "w")
+        rs_file:write(rust_scaffold(self:snippet()), "w")
       end
     end
 
