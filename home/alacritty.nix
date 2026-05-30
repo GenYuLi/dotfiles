@@ -1,4 +1,4 @@
-{ pkgs, lib, nixgl, ... }:
+{ pkgs, lib, nixgl, dotfiles, ... }:
 let
   nixGLWrap = pkg:
     let
@@ -35,6 +35,14 @@ in
       window = {
         dynamic_padding = true;
         option_as_alt = "Both";
+      };
+      # On bell, run the focus-guarded notifier: a real desktop toast only
+      # when Alacritty isn't focused. This is how Claude Code notifications
+      # reach the local machine over SSH — cc-notify.sh's SSH branch writes
+      # a BEL byte, which the local Alacritty turns into this command.
+      bell.command = {
+        program = "${pkgs.bash}/bin/bash";
+        args = [ "${dotfiles.directory}/.claude/hooks/bell-notify.sh" ];
       };
       colors = {
         indexed_colors = [
