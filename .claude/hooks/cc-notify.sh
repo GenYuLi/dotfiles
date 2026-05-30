@@ -157,16 +157,30 @@ notify_linux() {
 }
 
 # ── Linux/KDE focus-guarded notify (for Stop) ──
-# Stop fires on every turn-end, so only toast when you've looked away
-# (focused = you can see the tmux popup). The focus check + the toast both
-# happen inside one KWin script because a plain shell can't read the
-# active window on KDE Wayland. The desktop-entry hint lets Plasma raise
-# the terminal on click (best-effort — not the precise pane, which needs
-# the shell-side notify-send -A path that can't be focus-guarded).
+# Stop fires on every turn-end, so stay quiet only when you're actually
+# LOOKING AT the CC pane — pane-precise, not just "some Alacritty is
+# focused". Two signals are combined: the shell checks (tmux) whether
+# saved_pane is the currently-displayed pane; KWin checks whether the
+# focused OS window is Alacritty. Quiet only when BOTH hold. So a Stop
+# while you're on another tmux window/session/problem — or in Chrome —
+# still toasts. The shell passes its tmux verdict into the KWin script as
+# a 0/1 literal; the JS ANDs it with its own focus check.
+# Click → desktop-entry hint raises the terminal (best-effort, not the
+# precise pane — that needs the shell-side notify-send -A path which
+# can't be focus-guarded).
 notify_linux_guarded() {
   command -v gdbus >/dev/null 2>&1 || return 0
   gdbus call --session --dest org.kde.KWin --object-path /Scripting \
     --method org.kde.kwin.Scripting.loadScript / >/dev/null 2>&1 || return 0
+  # viewing=1 → saved_pane is the pane currently on screen. Default 1 when
+  # not in tmux, so the guard degrades to plain window-level focus.
+  local viewing=1
+  if [ -n "$saved_pane" ]; then
+    viewing=0
+    local v
+    v="$(tmux display-message -p -t "$saved_pane" '#{?pane_active,1,0}#{?window_active,1,0}#{?session_attached,1,0}' 2>/dev/null)"
+    [ "$v" = "111" ] && viewing=1
+  fi
   local gicon="$icon" entry="${CC_NOTIFY_DESKTOP_ENTRY:-Alacritty}"
   # JSON-encode every interpolated value: this KWin script runs in a
   # privileged context (callDBus to any service), so a value containing a
@@ -183,7 +197,10 @@ notify_linux_guarded() {
   cat > "$js" <<EOF
 const w = workspace.activeWindow || workspace.activeClient;
 const cls = w ? (w.resourceClass || "") : "";
-if (!/alacritty/i.test(cls)) {
+const focusedAla = /alacritty/i.test(cls);
+const viewing = $viewing;
+// Quiet only when you're focused on Alacritty AND it's showing the CC pane.
+if (!(focusedAla && viewing)) {
   callDBus("org.freedesktop.Notifications", "/org/freedesktop/Notifications",
     "org.freedesktop.Notifications", "Notify",
     "Claude Code", 0, $gicon_j,
