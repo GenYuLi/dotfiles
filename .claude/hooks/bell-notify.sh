@@ -27,6 +27,9 @@ bell_linux() {
   gdbus call --session --dest org.kde.KWin --object-path /Scripting \
     --method org.kde.kwin.Scripting.loadScript / >/dev/null 2>&1 || return 0
   local icon="$ICON"; [ -f "$icon" ] || icon="dialog-information"
+  # JSON-encode the icon path before embedding into the privileged KWin
+  # script (jq -Rs . emits a safe JS string literal; no surrounding quotes).
+  local icon_j; icon_j="$(printf '%s' "$icon" | jq -Rs .)"
   local js; js="$(mktemp /tmp/cc-bell-XXXXXX.js)" || return 0
   cat > "$js" <<EOF
 const w = workspace.activeWindow || workspace.activeClient;
@@ -34,7 +37,7 @@ const cls = w ? (w.resourceClass || "") : "";
 if (!/alacritty/i.test(cls)) {
   callDBus("org.freedesktop.Notifications", "/org/freedesktop/Notifications",
     "org.freedesktop.Notifications", "Notify",
-    "Claude Code", 0, "$icon",
+    "Claude Code", 0, $icon_j,
     "Claude Code", "needs your attention",
     [], {}, 5000);
 }

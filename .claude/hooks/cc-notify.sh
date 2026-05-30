@@ -104,8 +104,14 @@ fi
 
 # ════════════════ shared setup ════════════════
 payload="$(cat -)"
-msg="$(printf '%s' "$payload" | jq -r '.message // "Claude Code needs your attention"' 2>/dev/null)"
-[ -z "$msg" ] && msg="Claude Code needs your attention"
+event="$(printf '%s' "$payload" | jq -r '.hook_event_name // ""' 2>/dev/null)"
+msg="$(printf '%s' "$payload" | jq -r '.message // ""' 2>/dev/null)"
+# Stop fires every turn-end and carries no message; give it its own text
+# and route it through the focus-guarded path below (Notification is
+# already focus-suppressed by CC itself, so it stays clickable/precise).
+if [ -z "$msg" ]; then
+  [ "$event" = "Stop" ] && msg="✅ Claude 講完一輪了" || msg="Claude Code needs your attention"
+fi
 
 icon="$ICON_PATH"
 [ -f "$icon" ] || icon="starred"
@@ -148,6 +154,54 @@ notify_linux() {
     fi
   ) >/dev/null 2>&1 </dev/null &
   disown 2>/dev/null || true
+}
+
+# ── Linux/KDE focus-guarded notify (for Stop) ──
+# Stop fires on every turn-end, so only toast when you've looked away
+# (focused = you can see the tmux popup). The focus check + the toast both
+# happen inside one KWin script because a plain shell can't read the
+# active window on KDE Wayland. The desktop-entry hint lets Plasma raise
+# the terminal on click (best-effort — not the precise pane, which needs
+# the shell-side notify-send -A path that can't be focus-guarded).
+notify_linux_guarded() {
+  command -v gdbus >/dev/null 2>&1 || return 0
+  gdbus call --session --dest org.kde.KWin --object-path /Scripting \
+    --method org.kde.kwin.Scripting.loadScript / >/dev/null 2>&1 || return 0
+  local gicon="$icon" entry="${CC_NOTIFY_DESKTOP_ENTRY:-Alacritty}"
+  # JSON-encode every interpolated value: this KWin script runs in a
+  # privileged context (callDBus to any service), so a value containing a
+  # double-quote or JS (e.g. a crafted cwd basename in $title) could break
+  # out of the string literal and inject code. `jq -Rs .` emits a safe,
+  # fully-escaped JSON string literal (also valid JS); embed it WITHOUT
+  # surrounding quotes since jq supplies them.
+  local gicon_j title_j msg_j entry_j
+  gicon_j="$(printf '%s' "$gicon" | jq -Rs .)"
+  title_j="$(printf '%s' "$title" | jq -Rs .)"
+  msg_j="$(printf '%s' "$msg" | jq -Rs .)"
+  entry_j="$(printf '%s' "$entry" | jq -Rs .)"
+  local js; js="$(mktemp /tmp/cc-stop-XXXXXX.js)" || return 0
+  cat > "$js" <<EOF
+const w = workspace.activeWindow || workspace.activeClient;
+const cls = w ? (w.resourceClass || "") : "";
+if (!/alacritty/i.test(cls)) {
+  callDBus("org.freedesktop.Notifications", "/org/freedesktop/Notifications",
+    "org.freedesktop.Notifications", "Notify",
+    "Claude Code", 0, $gicon_j,
+    $title_j, $msg_j,
+    ["default", "Jump"], {"desktop-entry": $entry_j}, 8000);
+}
+EOF
+  local ret sid
+  ret="$(gdbus call --session --dest org.kde.KWin --object-path /Scripting \
+    --method org.kde.kwin.Scripting.loadScript "$js" 2>/dev/null)"
+  sid="$(printf '%s' "$ret" | grep -oP '\(\K[0-9]+')"
+  if [ -n "$sid" ]; then
+    gdbus call --session --dest org.kde.KWin --object-path "/Scripting/Script$sid" \
+      --method org.kde.kwin.Script.run >/dev/null 2>&1
+    gdbus call --session --dest org.kde.KWin --object-path /Scripting \
+      --method org.kde.kwin.Scripting.unloadScript "$sid" >/dev/null 2>&1
+  fi
+  rm -f "$js"
 }
 
 # ════════════════ macOS backend (UNTESTED) ════════════════
@@ -194,11 +248,13 @@ notify_ssh() {
 }
 
 if is_ssh; then
+  # SSH Stop is focus-guarded downstream: the BEL reaches the local
+  # Alacritty, whose bell.command runs the focus-guarded bell-notify.
   notify_ssh
 else
   case "$(uname)" in
     Darwin) notify_macos ;;
-    *)      notify_linux ;;
+    *)      if [ "$event" = "Stop" ]; then notify_linux_guarded; else notify_linux; fi ;;
   esac
 fi
 
