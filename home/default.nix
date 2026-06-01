@@ -134,6 +134,8 @@ in
     ] ++ (pkgs.lib.optionals pkgs.stdenv.isLinux [
       qimgv # export QT_XCB_GL_INTEGRATION=none
       netcat-openbsd # only the bsd version support `-k`
+    ]) ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin [
+      terminal-notifier # clickable Claude Code desktop notifications
     ]);
 
     sessionPath = [
