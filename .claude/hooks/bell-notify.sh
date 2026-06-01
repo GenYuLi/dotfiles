@@ -55,10 +55,11 @@ EOF
   rm -f "$js"
 }
 
-# ── macOS: frontmost-app check + display notification. UNTESTED ──
-# System Events reports the frontmost app; skip the toast when it's the
-# terminal (you're looking at it). osascript display notification has no
-# click action — matches the bell's "just nudge me" role.
+# ── macOS: frontmost-app check + toast. System Events reports the
+# frontmost app; skip the toast when it's a terminal (you're looking at
+# it). Prefer terminal-notifier for the Claude icon; fall back to
+# osascript. No click action — matches the bell's "just nudge me" role
+# and the Linux bell's empty actions array. ──
 bell_macos() {
   command -v osascript >/dev/null 2>&1 || return 0
   local front
@@ -66,7 +67,15 @@ bell_macos() {
   case "$front" in
     [Aa]lacritty|iTerm*|[Gg]hostty|kitty|WezTerm|Terminal) return 0 ;;
   esac
-  osascript -e 'display notification "needs your attention" with title "Claude Code"' >/dev/null 2>&1 || true
+  if command -v terminal-notifier >/dev/null 2>&1; then
+    local appicon=()
+    [ -f "$ICON" ] && appicon=(-appIcon "$ICON")
+    terminal-notifier -title "Claude Code" -message "needs your attention" "${appicon[@]}" \
+      >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+  else
+    osascript -e 'display notification "needs your attention" with title "Claude Code"' >/dev/null 2>&1 || true
+  fi
 }
 
 case "$(uname)" in
