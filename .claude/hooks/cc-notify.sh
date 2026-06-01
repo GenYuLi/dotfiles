@@ -78,14 +78,19 @@ EOF
   rm -f "$js"
 }
 
-# ── macOS: raise the terminal app. UNTESTED (no mac to verify on yet) ──
-# osascript activates by application name. Deriving the app from a PID
-# is awkward on macOS, so we activate by name passed from $TERM_PROGRAM
-# (Apple_Terminal/iTerm.app/Alacritty/ghostty/…). Best-effort: if the
-# name doesn't map to a real app, activate silently no-ops.
-raise_app_macos() {
-  local app="$1"
-  [ -n "$app" ] || return 0
+# ── macOS: raise the terminal window. Prefer PID → System Events
+#    set-frontmost: robust, and works even though the nix-store
+#    Alacritty.app is not in /Applications (so name resolution via
+#    LaunchServices can fail). Fall back to activate-by-name when no PID
+#    was resolved; the name defaults to Alacritty, override with
+#    $CC_NOTIFY_MAC_APP. ──
+raise_macos() {
+  local pid="$1" app="${2:-${CC_NOTIFY_MAC_APP:-Alacritty}}"
+  if [ -n "$pid" ] && osascript -e \
+    "tell application \"System Events\" to set frontmost of (first process whose unix id is $pid) to true" \
+    >/dev/null 2>&1; then
+    return 0
+  fi
   case "$app" in
     Apple_Terminal) app="Terminal" ;;
     *.app) app="${app%.app}" ;;
@@ -95,10 +100,10 @@ raise_app_macos() {
 
 # ── --jump subcommand: invoked by macOS terminal-notifier -execute on
 #    click (Linux does the equivalent inline, see notify_linux). Args:
-#    --jump <session> <pane_id> <term_app> ──
+#    --jump <session> <pane_id> <term_pid> ──
 if [ "${1:-}" = "--jump" ]; then
   tmux_restore "${2:-}" "${3:-}"
-  [ "$OSTYPE" != "${OSTYPE#darwin}" ] && raise_app_macos "${4:-}"
+  [ "$OSTYPE" != "${OSTYPE#darwin}" ] && raise_macos "${4:-}"
   exit 0
 fi
 
@@ -232,12 +237,39 @@ notify_macos() {
     [ -f "$ICON_PATH" ] && appicon=(-appIcon "$ICON_PATH")
     terminal-notifier \
       -title "$title" -message "$msg" "${appicon[@]}" \
-      -execute "$SELF --jump $(printf '%q %q %q' "$saved_sess" "$saved_pane" "$term_app")" \
+      -execute "$SELF --jump $(printf '%q %q %q' "$saved_sess" "$saved_pane" "$term_pid")" \
       >/dev/null 2>&1 &
     disown 2>/dev/null || true
   else
     osascript -e "display notification \"$msg\" with title \"$title\"" >/dev/null 2>&1 || true
   fi
+}
+
+# ── macOS focus-guarded notify (for Stop) ──
+# Stop fires on every turn-end, so stay quiet only when you're actually
+# LOOKING AT the CC pane — pane-precise, mirroring notify_linux_guarded.
+# Two signals are ANDed: the frontmost GUI app is Alacritty (System
+# Events), AND (in tmux) saved_pane is the on-screen active pane. Quiet
+# only when BOTH hold; otherwise toast (still clickable). viewing
+# defaults to 1 when not in tmux, degrading to plain window-level focus.
+notify_macos_guarded() {
+  local viewing=1
+  if [ -n "$saved_pane" ]; then
+    viewing=0
+    local v
+    v="$(tmux display-message -p -t "$saved_pane" '#{?pane_active,1,0}#{?window_active,1,0}#{?session_attached,1,0}' 2>/dev/null)"
+    [ "$v" = "111" ] && viewing=1
+  fi
+  local front
+  front="$(osascript -e 'tell application "System Events" to name of first application process whose frontmost is true' 2>/dev/null)"
+  local focused_term=0
+  case "$front" in
+    [Aa]lacritty) focused_term=1 ;;
+  esac
+  if [ "$focused_term" = 1 ] && [ "$viewing" = 1 ]; then
+    return 0
+  fi
+  notify_macos
 }
 
 # ════════════════ SSH backend ════════════════
@@ -270,7 +302,7 @@ if is_ssh; then
   notify_ssh
 else
   case "$(uname)" in
-    Darwin) notify_macos ;;
+    Darwin) if [ "$event" = "Stop" ]; then notify_macos_guarded; else notify_macos; fi ;;
     *)      if [ "$event" = "Stop" ]; then notify_linux_guarded; else notify_linux; fi ;;
   esac
 fi
