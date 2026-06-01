@@ -237,7 +237,7 @@ notify_macos() {
     [ -f "$ICON_PATH" ] && appicon=(-appIcon "$ICON_PATH")
     terminal-notifier \
       -title "$title" -message "$msg" "${appicon[@]}" \
-      -execute "$SELF --jump $(printf '%q %q %q' "$saved_sess" "$saved_pane" "$term_pid")" \
+      -execute "$(printf '%q --jump %q %q %q' "$SELF" "$saved_sess" "$saved_pane" "$term_pid")" \
       >/dev/null 2>&1 &
     disown 2>/dev/null || true
   else
