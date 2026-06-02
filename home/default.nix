@@ -196,6 +196,7 @@ in
   home.file.".claude/skills".source = symlinkDotfiles ".claude/skills";
   home.file.".claude/agents".source = symlinkDotfiles ".claude/agents";
   home.file.".claude/hooks/cc-notify.sh".source = symlinkDotfiles ".claude/hooks/cc-notify.sh";
+  home.file.".claude/hooks/notify-lib.sh".source = symlinkDotfiles ".claude/hooks/notify-lib.sh";
   home.file.".claude/assets/claude.png".source = symlinkDotfiles ".claude/assets/claude.png";
 
   xdg.configFile = {

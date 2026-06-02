@@ -16,6 +16,9 @@ set -u
 SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
 ICON_PATH="$HOME/.claude/assets/claude.png"
 
+# Shared notification primitives (KWin runner, macOS frontmost/toast).
+. "$(dirname "$SELF")/notify-lib.sh"
+
 # ── Terminal emulator regex (covers Linux + macOS terminals) ──
 TERM_RE='lacritty|ghostty|kitty|foot|wezterm|konsole|gnome-terminal|xterm|iTerm|Terminal'
 
@@ -66,26 +69,12 @@ tmux_restore() {
 # KWin first and no-ops on GNOME/sway/bare X.
 raise_pid_kwin() {
   local pid="$1"
-  command -v gdbus >/dev/null 2>&1 || return 0
-  gdbus call --session --dest org.kde.KWin --object-path /Scripting \
-    --method org.kde.kwin.Scripting.loadScript / >/dev/null 2>&1 || return 0
-  local js; js="$(mktemp /tmp/cc-kwin-XXXXXX.js)" || return 0
-  cat > "$js" <<EOF
+  nlib_kwin_run "$(cat <<EOF
 const target = $pid;
 const wins = workspace.windowList ? workspace.windowList() : workspace.clientList();
 for (const w of wins) { if (w.pid === target) { workspace.activeWindow = w; } }
 EOF
-  local ret sid
-  ret="$(gdbus call --session --dest org.kde.KWin --object-path /Scripting \
-    --method org.kde.kwin.Scripting.loadScript "$js" 2>/dev/null)"
-  sid="$(printf '%s' "$ret" | grep -oP '\(\K[0-9]+')"
-  if [ -n "$sid" ]; then
-    gdbus call --session --dest org.kde.KWin --object-path "/Scripting/Script$sid" \
-      --method org.kde.kwin.Script.run >/dev/null 2>&1
-    gdbus call --session --dest org.kde.KWin --object-path /Scripting \
-      --method org.kde.kwin.Scripting.unloadScript "$sid" >/dev/null 2>&1
-  fi
-  rm -f "$js"
+)"
 }
 
 # ── macOS: raise the terminal window. Prefer PID → System Events
@@ -188,9 +177,6 @@ notify_linux() {
 # precise pane — that needs the shell-side notify-send -A path which
 # can't be focus-guarded).
 notify_linux_guarded() {
-  command -v gdbus >/dev/null 2>&1 || return 0
-  gdbus call --session --dest org.kde.KWin --object-path /Scripting \
-    --method org.kde.kwin.Scripting.loadScript / >/dev/null 2>&1 || return 0
   # viewing=1 → saved_pane is the pane currently on screen. Default 1 when
   # not in tmux, so the guard degrades to plain window-level focus.
   local viewing=1
@@ -212,8 +198,7 @@ notify_linux_guarded() {
   title_j="$(printf '%s' "$title" | jq -Rs .)"
   msg_j="$(printf '%s' "$msg" | jq -Rs .)"
   entry_j="$(printf '%s' "$entry" | jq -Rs .)"
-  local js; js="$(mktemp /tmp/cc-stop-XXXXXX.js)" || return 0
-  cat > "$js" <<EOF
+  nlib_kwin_run "$(cat <<EOF
 const w = workspace.activeWindow || workspace.activeClient;
 const cls = w ? (w.resourceClass || "") : "";
 const focusedAla = /alacritty/i.test(cls);
@@ -227,17 +212,7 @@ if (!(focusedAla && viewing)) {
     ["default", "Jump"], {"desktop-entry": $entry_j}, 8000);
 }
 EOF
-  local ret sid
-  ret="$(gdbus call --session --dest org.kde.KWin --object-path /Scripting \
-    --method org.kde.kwin.Scripting.loadScript "$js" 2>/dev/null)"
-  sid="$(printf '%s' "$ret" | grep -oP '\(\K[0-9]+')"
-  if [ -n "$sid" ]; then
-    gdbus call --session --dest org.kde.KWin --object-path "/Scripting/Script$sid" \
-      --method org.kde.kwin.Script.run >/dev/null 2>&1
-    gdbus call --session --dest org.kde.KWin --object-path /Scripting \
-      --method org.kde.kwin.Scripting.unloadScript "$sid" >/dev/null 2>&1
-  fi
-  rm -f "$js"
+)"
 }
 
 # ════════════════ macOS backend (tested on macOS 26) ════════════════
@@ -246,28 +221,14 @@ EOF
 # back to osascript display-notification (no click action) when
 # terminal-notifier isn't installed.
 notify_macos() {
-  if command -v terminal-notifier >/dev/null 2>&1; then
-    # -contentImage (sprite on the right), NOT -appIcon: on recent macOS
-    # -appIcon is ignored (the main icon stays terminal-notifier's own),
-    # while -contentImage renders. Keeps the terminal-notifier app icon as
-    # the main mark and shows the Claude sprite alongside.
-    local contentimg=()
-    [ -f "$ICON_PATH" ] && contentimg=(-contentImage "$ICON_PATH")
-    # A -execute notification keeps its terminal-notifier process alive to
-    # catch the click. On macOS NSUserNotification is deprecated, and when
-    # several waiters of the same bundle id pile up the click callback is
-    # dropped (routed ambiguously) — so clicks silently stop working once a
-    # few un-clicked toasts accumulate. Reap stale waiters first so the
-    # newest toast is always the single live one whose click fires --jump.
-    pkill -f 'terminal-notifier.app/Contents/MacOS' 2>/dev/null || true
-    terminal-notifier \
-      -title "$title" -message "$msg" "${contentimg[@]}" \
-      -execute "$(printf 'PATH=%q %q --jump %q %q %q %q' "$PATH" "$SELF" "$saved_sess" "$saved_pane" "$term_pid" "$client_tty")" \
-      >/dev/null 2>&1 &
-    disown 2>/dev/null || true
-  else
-    osascript -e "display notification \"$msg\" with title \"$title\"" >/dev/null 2>&1 || true
-  fi
+  # Bake the full PATH and client tty into the click action: the handler is
+  # relaunched by LaunchServices with a minimal PATH and no $TMUX, so bare
+  # `tmux` would not be found and switch-client would have no client to act
+  # on. nlib_toast_macos handles the sprite (-contentImage) and reaps stale
+  # click-waiters before posting.
+  local execute
+  execute="$(printf 'PATH=%q %q --jump %q %q %q %q' "$PATH" "$SELF" "$saved_sess" "$saved_pane" "$term_pid" "$client_tty")"
+  nlib_toast_macos "$title" "$msg" "$ICON_PATH" "$execute"
 }
 
 # ── macOS focus-guarded notify (for Stop) ──
@@ -285,8 +246,7 @@ notify_macos_guarded() {
     v="$(tmux display-message -p -t "$saved_pane" '#{?pane_active,1,0}#{?window_active,1,0}#{?session_attached,1,0}' 2>/dev/null)"
     [ "$v" = "111" ] && viewing=1
   fi
-  local front
-  front="$(osascript -e 'tell application "System Events" to name of first application process whose frontmost is true' 2>/dev/null)"
+  local front; front="$(nlib_frontmost_app)"
   local focused_term=0
   case "$front" in
     [Aa]lacritty) focused_term=1 ;;

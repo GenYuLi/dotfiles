@@ -19,12 +19,12 @@
 
 set -u
 
-# Alacritty's bell.command launches this with a minimal PATH (the GUI app
-# inherits launchd's /usr/bin:/bin, not the nix profile), so a bare
-# `terminal-notifier` / `notify-send` lookup fails and the toast silently
-# degrades to the osascript fallback (no icon, wrong sender). Prepend the
-# usual nix profile + system locations so the real notifier is found.
-export PATH="$HOME/.local/state/nix/profile/bin:$HOME/.nix-profile/bin:/run/current-system/sw/bin:/etc/profiles/per-user/$USER/bin:/usr/bin:/bin:$PATH"
+# Shared notification primitives (KWin runner, macOS frontmost/toast, PATH).
+. "$(dirname "${BASH_SOURCE[0]}")/notify-lib.sh"
+
+# bell.command launches this with launchd's minimal PATH (no nix profile),
+# so terminal-notifier / notify-send wouldn't be found — fix it up.
+nlib_setup_path
 
 ICON="$HOME/.claude/assets/claude.png"
 
@@ -33,15 +33,11 @@ ICON="$HOME/.claude/assets/claude.png"
 # (queryWindowInfo is interactive), but KWin's privileged JS context can,
 # and can callDBus the freedesktop Notify too. No-ops without gdbus/KWin.
 bell_linux() {
-  command -v gdbus >/dev/null 2>&1 || return 0
-  gdbus call --session --dest org.kde.KWin --object-path /Scripting \
-    --method org.kde.kwin.Scripting.loadScript / >/dev/null 2>&1 || return 0
   local icon="$ICON"; [ -f "$icon" ] || icon="dialog-information"
   # JSON-encode the icon path before embedding into the privileged KWin
   # script (jq -Rs . emits a safe JS string literal; no surrounding quotes).
   local icon_j; icon_j="$(printf '%s' "$icon" | jq -Rs .)"
-  local js; js="$(mktemp /tmp/cc-bell-XXXXXX.js)" || return 0
-  cat > "$js" <<EOF
+  nlib_kwin_run "$(cat <<EOF
 const w = workspace.activeWindow || workspace.activeClient;
 const cls = w ? (w.resourceClass || "") : "";
 if (!/alacritty/i.test(cls)) {
@@ -52,17 +48,7 @@ if (!/alacritty/i.test(cls)) {
     [], {}, 5000);
 }
 EOF
-  local ret sid
-  ret="$(gdbus call --session --dest org.kde.KWin --object-path /Scripting \
-    --method org.kde.kwin.Scripting.loadScript "$js" 2>/dev/null)"
-  sid="$(printf '%s' "$ret" | grep -oP '\(\K[0-9]+')"
-  if [ -n "$sid" ]; then
-    gdbus call --session --dest org.kde.KWin --object-path "/Scripting/Script$sid" \
-      --method org.kde.kwin.Script.run >/dev/null 2>&1
-    gdbus call --session --dest org.kde.KWin --object-path /Scripting \
-      --method org.kde.kwin.Scripting.unloadScript "$sid" >/dev/null 2>&1
-  fi
-  rm -f "$js"
+)"
 }
 
 # ── macOS: frontmost-app check + toast. System Events reports the
@@ -71,23 +57,13 @@ EOF
 # osascript. No click action — matches the bell's "just nudge me" role
 # and the Linux bell's empty actions array. ──
 bell_macos() {
-  command -v osascript >/dev/null 2>&1 || return 0
-  local front
-  front="$(osascript -e 'tell application "System Events" to name of first application process whose frontmost is true' 2>/dev/null)"
+  # Skip the toast when a terminal is frontmost (you're already looking).
+  local front; front="$(nlib_frontmost_app)"
   case "$front" in
     [Aa]lacritty|iTerm*|[Gg]hostty|kitty|WezTerm|Terminal) return 0 ;;
   esac
-  if command -v terminal-notifier >/dev/null 2>&1; then
-    # -contentImage, not -appIcon (ignored on recent macOS); sprite on the
-    # right, terminal-notifier's own icon stays as the main mark.
-    local contentimg=()
-    [ -f "$ICON" ] && contentimg=(-contentImage "$ICON")
-    terminal-notifier -title "Claude Code" -message "needs your attention" "${contentimg[@]}" \
-      >/dev/null 2>&1 &
-    disown 2>/dev/null || true
-  else
-    osascript -e 'display notification "needs your attention" with title "Claude Code"' >/dev/null 2>&1 || true
-  fi
+  # No click action — a plain nudge, matching the Linux bell's empty actions.
+  nlib_toast_macos "Claude Code" "needs your attention" "$ICON"
 }
 
 case "$(uname)" in
