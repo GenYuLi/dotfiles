@@ -217,6 +217,10 @@ in
         XMODIFIERS=@im=fcitx
       '';
     };
+    # fcitx5 Unicode searcher hotkey (Ctrl+Alt+U). See docs/symbol-input_zh_tw.md.
+    "fcitx5/conf/unicode.conf" = lib.mkIf pkgs.stdenv.isLinux {
+      source = symlinkDotfiles "config/fcitx5/conf/unicode.conf";
+    };
   };
 
   catppuccin = {
