@@ -5,8 +5,8 @@
 # identical everywhere; only the desktop-notify tool and the
 # window-raise mechanism differ per OS.
 #
-#   Linux/KDE : notify-send -A  +  KWin scripting raise-by-PID   [tested]
-#   macOS     : terminal-notifier -execute + osascript activate  [UNTESTED]
+#   Linux/KDE : notify-send -A  +  KWin scripting raise-by-PID      [tested]
+#   macOS     : terminal-notifier -execute + System Events raise    [tested]
 #
 # Wired in ~/.claude/settings.json under hooks.Notification.
 # Icon override: ~/.claude/assets/claude.png (else Freedesktop `starred`).
@@ -240,7 +240,7 @@ EOF
   rm -f "$js"
 }
 
-# ════════════════ macOS backend (UNTESTED) ════════════════
+# ════════════════ macOS backend (tested on macOS 26) ════════════════
 # terminal-notifier -execute runs a shell command on click; we re-invoke
 # this script in --jump mode (it can't see these vars otherwise). Falls
 # back to osascript display-notification (no click action) when

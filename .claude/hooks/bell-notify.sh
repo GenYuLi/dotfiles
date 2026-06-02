@@ -12,7 +12,10 @@
 # Platform-dispatched like cc-notify.sh, because "focus check + notify"
 # uses entirely different tooling per OS:
 #   Linux/KDE : KWin scripting (reads activeWindow + callDBus Notify)  [tested]
-#   macOS     : osascript (frontmost app + display notification)       [UNTESTED]
+#   macOS     : osascript frontmost check + terminal-notifier toast
+#               (osascript display-notification fallback)
+#               [toast path tested; full remote-BEL→local SSH chain not
+#                yet e2e-verified on macOS]
 
 set -u
 
