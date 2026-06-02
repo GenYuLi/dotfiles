@@ -12,9 +12,19 @@
 # Platform-dispatched like cc-notify.sh, because "focus check + notify"
 # uses entirely different tooling per OS:
 #   Linux/KDE : KWin scripting (reads activeWindow + callDBus Notify)  [tested]
-#   macOS     : osascript (frontmost app + display notification)       [UNTESTED]
+#   macOS     : osascript frontmost check + terminal-notifier toast
+#               (osascript display-notification fallback)
+#               [toast path tested; full remote-BEL→local SSH chain not
+#                yet e2e-verified on macOS]
 
 set -u
+
+# Alacritty's bell.command launches this with a minimal PATH (the GUI app
+# inherits launchd's /usr/bin:/bin, not the nix profile), so a bare
+# `terminal-notifier` / `notify-send` lookup fails and the toast silently
+# degrades to the osascript fallback (no icon, wrong sender). Prepend the
+# usual nix profile + system locations so the real notifier is found.
+export PATH="$HOME/.local/state/nix/profile/bin:$HOME/.nix-profile/bin:/run/current-system/sw/bin:/etc/profiles/per-user/$USER/bin:/usr/bin:/bin:$PATH"
 
 ICON="$HOME/.claude/assets/claude.png"
 
@@ -55,10 +65,11 @@ EOF
   rm -f "$js"
 }
 
-# ── macOS: frontmost-app check + display notification. UNTESTED ──
-# System Events reports the frontmost app; skip the toast when it's the
-# terminal (you're looking at it). osascript display notification has no
-# click action — matches the bell's "just nudge me" role.
+# ── macOS: frontmost-app check + toast. System Events reports the
+# frontmost app; skip the toast when it's a terminal (you're looking at
+# it). Prefer terminal-notifier for the Claude icon; fall back to
+# osascript. No click action — matches the bell's "just nudge me" role
+# and the Linux bell's empty actions array. ──
 bell_macos() {
   command -v osascript >/dev/null 2>&1 || return 0
   local front
@@ -66,7 +77,17 @@ bell_macos() {
   case "$front" in
     [Aa]lacritty|iTerm*|[Gg]hostty|kitty|WezTerm|Terminal) return 0 ;;
   esac
-  osascript -e 'display notification "needs your attention" with title "Claude Code"' >/dev/null 2>&1 || true
+  if command -v terminal-notifier >/dev/null 2>&1; then
+    # -contentImage, not -appIcon (ignored on recent macOS); sprite on the
+    # right, terminal-notifier's own icon stays as the main mark.
+    local contentimg=()
+    [ -f "$ICON" ] && contentimg=(-contentImage "$ICON")
+    terminal-notifier -title "Claude Code" -message "needs your attention" "${contentimg[@]}" \
+      >/dev/null 2>&1 &
+    disown 2>/dev/null || true
+  else
+    osascript -e 'display notification "needs your attention" with title "Claude Code"' >/dev/null 2>&1 || true
+  fi
 }
 
 case "$(uname)" in

@@ -3,6 +3,25 @@ return {
   build = ":TSUpdate html",
   cmd = { "Leet", "LeetGoogle" },
   config = function(_, opts)
+    -- leetcode.nvim paints the question <p> body with leetcode_normal =
+    -- Conceal.fg, which gruvbox-material renders too dim to read. We want the
+    -- body in the editor's own foreground (the warm cream that <strong> already
+    -- derives from theme[""].fg = Normal.fg) and <strong> a notch brighter, so
+    -- emphasis still stands out — i.e. move bold's original color onto normal.
+    -- Read the LIVE Normal fg rather than hardcoding a palette so this tracks
+    -- whatever colorscheme is active (don't bake catppuccin/gruvbox hex in).
+    local nfg = vim.api.nvim_get_hl(0, { name = "Normal", link = false }).fg
+    if nfg then
+      local r, g, b = math.floor(nfg / 65536) % 256, math.floor(nfg / 256) % 256, nfg % 256
+      local function lighten(c) return math.min(255, math.floor(c + (255 - c) * 0.25)) end
+      -- bold needs its OWN fg: the derive code (theme/init.lua) only rewrites a
+      -- bold tag's fg to theme[""].fg when it still equals normal.fg, so giving
+      -- bold a distinct (lighter) fg breaks that branch and survives intact.
+      opts.theme = {
+        normal = { fg = string.format("#%06x", nfg) }, -- body <p>
+        bold = { fg = string.format("#%02x%02x%02x", lighten(r), lighten(g), lighten(b)), bold = true }, -- <strong>/<b>
+      }
+    end
     -- setup() must run first: leetcode.cache.cookie and friends read
     -- config.cache at module-load time, so our patches (which require
     -- leetcode-ui.question transitively) crash on a nil cache before
@@ -23,6 +42,14 @@ return {
           "#include <ranges>", -- leetcode didn't include this by default
           "using namespace std;",
         },
+      },
+      -- The rust snippet is impl-only; `struct Solution;` is implicit on the
+      -- platform but absent locally, so without it cargo check (checkOnSave)
+      -- opens every question with a bogus "cannot find type Solution" [E0412]
+      -- that drowns the real diagnostics. Don't also type it by hand — that's
+      -- a duplicate definition [E0428].
+      ["rust"] = {
+        before = { "struct Solution;" },
       },
     },
     hooks = {
