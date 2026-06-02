@@ -43,9 +43,19 @@ term_pid_from_tty() {
 # from window 2 lands wrong if you're viewing another window — hence
 # select-window (pane id resolves to its containing window) too.
 tmux_restore() {
-  local sess="$1" pane="$2"
+  local sess="$1" pane="$2" client="${3:-}"
   [ -n "$pane" ] || return 0
-  [ -n "$sess" ] && tmux switch-client -t "$sess" 2>/dev/null
+  if [ -n "$sess" ]; then
+    # Explicit -c <client> when known: the macOS click handler runs
+    # detached (no $TMUX to identify the current client). On Linux the
+    # handler runs inline so $client is empty and tmux resolves the
+    # client from the inherited $TMUX.
+    if [ -n "$client" ]; then
+      tmux switch-client -c "$client" -t "$sess" 2>/dev/null
+    else
+      tmux switch-client -t "$sess" 2>/dev/null
+    fi
+  fi
   tmux select-window -t "$pane" 2>/dev/null
   tmux select-pane -t "$pane" 2>/dev/null
 }
@@ -99,10 +109,14 @@ raise_macos() {
 }
 
 # ── --jump subcommand: invoked by macOS terminal-notifier -execute on
-#    click (Linux does the equivalent inline, see notify_linux). Args:
-#    --jump <session> <pane_id> <term_pid> ──
+#    click (Linux does the equivalent inline, see notify_linux). The
+#    click handler is relaunched by LaunchServices with a minimal PATH
+#    and no $TMUX, so notify_macos bakes the full PATH into the -execute
+#    string (otherwise bare `tmux` is not found) and passes the client
+#    tty explicitly. Args:
+#    --jump <session> <pane_id> <term_pid> <client_tty> ──
 if [ "${1:-}" = "--jump" ]; then
-  tmux_restore "${2:-}" "${3:-}"
+  tmux_restore "${2:-}" "${3:-}" "${5:-}"
   [ "$OSTYPE" != "${OSTYPE#darwin}" ] && raise_macos "${4:-}"
   exit 0
 fi
@@ -237,7 +251,7 @@ notify_macos() {
     [ -f "$ICON_PATH" ] && appicon=(-appIcon "$ICON_PATH")
     terminal-notifier \
       -title "$title" -message "$msg" "${appicon[@]}" \
-      -execute "$(printf '%q --jump %q %q %q' "$SELF" "$saved_sess" "$saved_pane" "$term_pid")" \
+      -execute "$(printf 'PATH=%q %q --jump %q %q %q %q' "$PATH" "$SELF" "$saved_sess" "$saved_pane" "$term_pid" "$client_tty")" \
       >/dev/null 2>&1 &
     disown 2>/dev/null || true
   else
