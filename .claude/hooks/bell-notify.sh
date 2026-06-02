@@ -19,6 +19,13 @@
 
 set -u
 
+# Alacritty's bell.command launches this with a minimal PATH (the GUI app
+# inherits launchd's /usr/bin:/bin, not the nix profile), so a bare
+# `terminal-notifier` / `notify-send` lookup fails and the toast silently
+# degrades to the osascript fallback (no icon, wrong sender). Prepend the
+# usual nix profile + system locations so the real notifier is found.
+export PATH="$HOME/.local/state/nix/profile/bin:$HOME/.nix-profile/bin:/run/current-system/sw/bin:/etc/profiles/per-user/$USER/bin:/usr/bin:/bin:$PATH"
+
 ICON="$HOME/.claude/assets/claude.png"
 
 # ── Linux/KDE: focus check + notify inside one KWin script ──
