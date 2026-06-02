@@ -62,8 +62,18 @@ bell_macos() {
   case "$front" in
     [Aa]lacritty|iTerm*|[Gg]hostty|kitty|WezTerm|Terminal) return 0 ;;
   esac
-  # No click action — a plain nudge, matching the Linux bell's empty actions.
-  nlib_toast_macos "Claude Code" "needs your attention" "$ICON"
+  # Click → raise the local Alacritty. The bell fires on ANY Alacritty bell
+  # and carries no info about which window / remote pane rang, so this is
+  # best-effort: just bring the app forward. Reuse cc-notify.sh's --jump
+  # raise path with an empty session/pane + the Alacritty PID — tmux_restore
+  # no-ops on the empty pane, raise_macos brings the process to the front.
+  local self_dir apid execute=""
+  self_dir="$(dirname "${BASH_SOURCE[0]}")"
+  apid="$(pgrep -n alacritty 2>/dev/null)"
+  if [ -n "$apid" ] && [ -f "$self_dir/cc-notify.sh" ]; then
+    execute="$(printf 'PATH=%q bash %q --jump %q %q %q %q' "$PATH" "$self_dir/cc-notify.sh" "" "" "$apid" "")"
+  fi
+  nlib_toast_macos "Claude Code" "needs your attention" "$ICON" "$execute"
 }
 
 case "$(uname)" in
