@@ -68,9 +68,11 @@ bell_macos() {
     [Aa]lacritty|iTerm*|[Gg]hostty|kitty|WezTerm|Terminal) return 0 ;;
   esac
   if command -v terminal-notifier >/dev/null 2>&1; then
-    local appicon=()
-    [ -f "$ICON" ] && appicon=(-appIcon "$ICON")
-    terminal-notifier -title "Claude Code" -message "needs your attention" "${appicon[@]}" \
+    # -contentImage, not -appIcon (ignored on recent macOS); sprite on the
+    # right, terminal-notifier's own icon stays as the main mark.
+    local contentimg=()
+    [ -f "$ICON" ] && contentimg=(-contentImage "$ICON")
+    terminal-notifier -title "Claude Code" -message "needs your attention" "${contentimg[@]}" \
       >/dev/null 2>&1 &
     disown 2>/dev/null || true
   else

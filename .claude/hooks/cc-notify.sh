@@ -247,10 +247,21 @@ EOF
 # terminal-notifier isn't installed.
 notify_macos() {
   if command -v terminal-notifier >/dev/null 2>&1; then
-    local appicon=()
-    [ -f "$ICON_PATH" ] && appicon=(-appIcon "$ICON_PATH")
+    # -contentImage (sprite on the right), NOT -appIcon: on recent macOS
+    # -appIcon is ignored (the main icon stays terminal-notifier's own),
+    # while -contentImage renders. Keeps the terminal-notifier app icon as
+    # the main mark and shows the Claude sprite alongside.
+    local contentimg=()
+    [ -f "$ICON_PATH" ] && contentimg=(-contentImage "$ICON_PATH")
+    # A -execute notification keeps its terminal-notifier process alive to
+    # catch the click. On macOS NSUserNotification is deprecated, and when
+    # several waiters of the same bundle id pile up the click callback is
+    # dropped (routed ambiguously) — so clicks silently stop working once a
+    # few un-clicked toasts accumulate. Reap stale waiters first so the
+    # newest toast is always the single live one whose click fires --jump.
+    pkill -f 'terminal-notifier.app/Contents/MacOS' 2>/dev/null || true
     terminal-notifier \
-      -title "$title" -message "$msg" "${appicon[@]}" \
+      -title "$title" -message "$msg" "${contentimg[@]}" \
       -execute "$(printf 'PATH=%q %q --jump %q %q %q %q' "$PATH" "$SELF" "$saved_sess" "$saved_pane" "$term_pid" "$client_tty")" \
       >/dev/null 2>&1 &
     disown 2>/dev/null || true
