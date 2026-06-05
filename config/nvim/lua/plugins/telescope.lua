@@ -3,6 +3,7 @@ local M = {
   cmd = "Telescope",
   dependencies = {
     { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+    "nvim-telescope/telescope-symbols.nvim", -- :Telescope symbols — search ∈/→/emoji by name
   }
 }
 

@@ -134,6 +134,8 @@ in
     ] ++ (pkgs.lib.optionals pkgs.stdenv.isLinux [
       qimgv # export QT_XCB_GL_INTEGRATION=none
       netcat-openbsd # only the bsd version support `-k`
+    ]) ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin [
+      terminal-notifier # clickable Claude Code desktop notifications
     ]);
 
     sessionPath = [
@@ -193,6 +195,9 @@ in
   home.file.".claude/commands".source = symlinkDotfiles ".claude/commands";
   home.file.".claude/skills".source = symlinkDotfiles ".claude/skills";
   home.file.".claude/agents".source = symlinkDotfiles ".claude/agents";
+  home.file.".claude/hooks/cc-notify.sh".source = symlinkDotfiles ".claude/hooks/cc-notify.sh";
+  home.file.".claude/hooks/notify-lib.sh".source = symlinkDotfiles ".claude/hooks/notify-lib.sh";
+  home.file.".claude/assets/claude.png".source = symlinkDotfiles ".claude/assets/claude.png";
 
   xdg.configFile = {
     "dotfiles".source = symlinkDotfiles ".";
@@ -213,6 +218,10 @@ in
         QT_IM_MODULE=fcitx
         XMODIFIERS=@im=fcitx
       '';
+    };
+    # fcitx5 Unicode searcher hotkey (Ctrl+Alt+U). See docs/symbol-input_zh_tw.md.
+    "fcitx5/conf/unicode.conf" = lib.mkIf pkgs.stdenv.isLinux {
+      source = symlinkDotfiles "config/fcitx5/conf/unicode.conf";
     };
   };
 

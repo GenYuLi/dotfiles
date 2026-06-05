@@ -440,6 +440,39 @@ version = "0.1.0"
 edition = "2021"
 ]]
 
+-- Virtual manifest at the storage root. Without it rust-analyzer pins to
+-- whichever per-question crate it discovers first and every other
+-- question opens as an unlinked-file (no IDE services). The glob member
+-- auto-includes new `<id>.<slug>-rust` crates, so there's no list to
+-- maintain.
+local WORKSPACE_TOML = [[
+[workspace]
+resolver = "2"
+members = ["*-rust"]
+]]
+
+-- LeetCode's Rust templates are `impl Solution { … }` with no
+-- `struct Solution;`, so they don't compile in our per-question crate.
+-- Inject the declaration as LOCAL scaffolding *before* the `@leet start`
+-- marker — outside the submitted region, because LeetCode's own judge
+-- defines Solution and a duplicate inside the markers would fail on
+-- submit. Skip when the snippet already declares Solution (some design
+-- problems do) or isn't a Solution-style problem.
+local function rust_scaffold(snippet)
+  if snippet:match("struct%s+Solution") or snippet:match("enum%s+Solution") then
+    return snippet
+  end
+  if not snippet:match("impl%s+Solution") then
+    return snippet
+  end
+  local decl = "struct Solution;\n\n"
+  local marker = snippet:find("//%s*@leet start")
+  if marker then
+    return snippet:sub(1, marker - 1) .. decl .. snippet:sub(marker)
+  end
+  return decl .. snippet
+end
+
 -- Idempotent: leetcode's `enter` hook fires on every menu open, but we
 -- only need to monkey-patch the Question class once.
 local rust_patched = false
@@ -477,6 +510,13 @@ local function override_rust_path()
     crate_dir:mkdir { parents = true, exists_ok = true }
     src_dir:mkdir { parents = true, exists_ok = true }
 
+    -- Ensure the storage root is a Cargo workspace so rust-analyzer loads
+    -- every per-question crate at once instead of pinning to one.
+    local ws_toml = config.storage.home:joinpath("Cargo.toml")
+    if not ws_toml:exists() then
+      ws_toml:write(WORKSPACE_TOML, "w")
+    end
+
     if not cargo_toml:exists() then
       local pkg = ("lc-%s-%s"):format(id, slug:gsub("[^%w_-]", "-"))
       cargo_toml:write(CARGO_TOML_TEMPLATE:format(pkg), "w")
@@ -489,7 +529,7 @@ local function override_rust_path()
         legacy:rm()
         existed = true
       else
-        rs_file:write(self:snippet(), "w")
+        rs_file:write(rust_scaffold(self:snippet()), "w")
       end
     end
 

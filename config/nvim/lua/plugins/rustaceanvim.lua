@@ -10,6 +10,21 @@ return {
   init = function()
     vim.g.rustaceanvim = {
       server = {
+        -- Scope `check.workspace` per project. The leetcode storage is one
+        -- big Cargo workspace holding every solved problem as a member, so
+        -- a workspace-wide check on save would re-check the whole backlog.
+        -- Restrict flycheck to the current package there; real projects
+        -- keep the default workspace-wide check (catches cross-crate
+        -- breakage). Set explicitly each call — never mutate-and-leak — so
+        -- switching from a leetcode buffer to a normal project can't carry
+        -- a stale `workspace = false`.
+        settings = function(project_root, default_settings)
+          local rs = default_settings["rust-analyzer"]
+          local leet_root = vim.fs.joinpath(vim.fn.stdpath("data"), "leetcode")
+          rs.check = rs.check or {}
+          rs.check.workspace = not (project_root and vim.startswith(project_root, leet_root))
+          return default_settings
+        end,
         default_settings = {
           ["rust-analyzer"] = {
             cargo = {
@@ -20,15 +35,14 @@ return {
             procMacro = {
               enable = true,
             },
-            -- Master switch: disable check-on-save entirely. cargo check
-            -- on lone .rs (no Cargo.toml in tree) triggers cargo's
-            -- single-file script mode which requires nightly. The
-            -- top-level `checkOnSave` boolean is the only way to stop
-            -- it; nesting it under `check.onSave` is silently ignored
-            -- because that key doesn't exist in rust-analyzer's schema.
-            checkOnSave = false,
-            -- `check` still governs HOW to check when manually invoked
-            -- (e.g. <leader>rC runs cargo clippy directly).
+            -- On: leetcode questions are real Cargo crates under a parent
+            -- workspace (see leet_patches), so cargo check surfaces real
+            -- type errors (E0308 "expected usize, found i32", etc.) on
+            -- save. Tradeoff: a lone .rs with no Cargo.toml in its tree
+            -- hits cargo's single-file script mode (needs nightly) and
+            -- complains — accepted, since the standalone rustc flow
+            -- (<leader>rB/rR) covers those files.
+            checkOnSave = true,
             check = {
               command = "clippy",
               extraArgs = { "--no-deps" },

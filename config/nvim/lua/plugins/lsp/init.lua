@@ -18,7 +18,10 @@ function M.config()
     local function opts(desc)
       return { buffer = bufnr, desc = desc }
     end
-    vim.keymap.set("i", "<C-k>", vim.lsp.buf.signature_help, opts("signature_help"))
+    -- <C-s> not <C-k>: keep <C-k> free for Vim digraphs (insert ∈ etc. via
+    -- <C-k>(-). lsp_signature.nvim already auto-shows signatures while typing,
+    -- so this manual trigger is just a fallback.
+    vim.keymap.set("i", "<C-s>", vim.lsp.buf.signature_help, opts("signature_help"))
     vim.keymap.set("n", "K", vim.lsp.buf.hover, opts("Hover doc"))
     vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts("go to definition"))
     vim.keymap.set("n", "gD", vim.lsp.buf.type_definition, opts("go to type definition"))
