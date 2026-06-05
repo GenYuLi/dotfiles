@@ -14,8 +14,9 @@
 #   Linux/KDE : KWin scripting (reads activeWindow + callDBus Notify)  [tested]
 #   macOS     : osascript frontmost check + terminal-notifier toast
 #               (osascript display-notification fallback)
-#               [toast path tested; full remote-BEL→local SSH chain not
-#                yet e2e-verified on macOS]
+#               [e2e-verified on macOS: remote BEL → ssh → local tmux →
+#                Alacritty bell.command → terminal-notifier toast, with the
+#                frontmost-Alacritty focus-guard suppressing it on-focus]
 
 set -u
 
