@@ -89,6 +89,7 @@ function M.config()
     pink = accents.purple,
     yellow = accents.yellow,
     subtext0 = "#a89984",
+    bg = "#1d2021",
   }
 
   -- Gap/caps carry NO bg so the bar stays transparent between pills — each pill
@@ -126,9 +127,34 @@ function M.config()
   -- #[fg=x,bg=y] (with a comma) would corrupt the branch. Hence literal #[fg=..]
   -- only; the pill bg/bold come from the surrounding heirline hl (outside the
   -- conditional, where commas are safe).
+  -- vim glyph (U+E62B) for the mode badge when we're in nvim (piped via
+  -- tpipeline). The tmux-native status-left uses the oct-terminal glyph instead,
+  -- so the icon tells you at a glance whether the focused pane is nvim or a
+  -- shell.
+  local TERMICON = "\238\152\171"
+
   local function wrap_tmux_highlight(mode)
     if not require("core.utils").is_tmux_active() then
       return mode
+    end
+    -- Emit a FILLED rounded badge as raw tmux directives (caps + bg + fg all in
+    -- the mode colour). tmux splits #{?cond,a,b} on commas, so every #[..] must
+    -- be a SINGLE attribute (no #[fg=x,bg=y]). Structurally identical to the
+    -- tmux-native badge in config/tmux/tmux.conf.
+    local cl, cr, base = assets.cap_left, assets.cap_right, C.bg
+    local function badge(color, label)
+      return ("#[fg=%s]#[bg=%s]%s#[bg=%s]#[fg=%s]#[bold] %s %s #[nobold]#[fg=%s]#[bg=%s]%s"):format(
+        color,
+        base,
+        cl,
+        color,
+        base,
+        TERMICON,
+        label,
+        color,
+        base,
+        cr
+      )
     end
     return {
       static = mode.static,
@@ -139,20 +165,13 @@ function M.config()
       provider = function(self)
         local label = self.mode_alias[self.mode] or self.mode_alias[self.short] or "NORMAL"
         local hex = C[self.mode_color[self.short] or "lavender"] or C.lavender
-        local i = assets.vim
-        return ("#{?client_prefix,#[fg=%s]%sPREFIX,#{?pane_in_mode,#[fg=%s]%sCOPY,#{?pane_synchronized,#[fg=%s]%sSYNC,#[fg=%s]%s%s}}}"):format(
-          C.pink,
-          i,
-          C.yellow,
-          i,
-          C.green,
-          i,
-          hex,
-          i,
-          label
+        return ("#{?client_prefix,%s,#{?pane_in_mode,%s,#{?pane_synchronized,%s,%s}}}"):format(
+          badge(C.pink, "PREFIX"),
+          badge(C.yellow, "COPY"),
+          badge(C.green, "SYNC"),
+          badge(hex, label)
         )
       end,
-      hl = { fg = "txt", bold = true },
       update = { "ModeChanged", "RecordingEnter", "RecordingLeave" },
     }
   end
@@ -199,7 +218,7 @@ function M.config()
         ["nt"] = "TERMINAL",
       },
       mode_color = {
-        ["n"] = "subtext0",
+        ["n"] = "lavender",
         ["i"] = "green",
         ["v"] = "mauve",
         ["V"] = "mauve",
@@ -427,8 +446,14 @@ function M.config()
   -- ── assembly ─────────────────────────────────────────────────────────────
   local Align = { provider = "%=" }
 
+  -- Piped through tmux (tpipeline): the mode is a self-contained filled badge
+  -- (its own caps) so it matches the tmux-native bar exactly; just add the
+  -- inter-pill Gap. Otherwise fall back to the plain grey pill.
+  local ModeElement = require("core.utils").is_tmux_active() and { wrap_tmux_highlight(Mode), Gap }
+    or pill("pill", { Mode })
+
   local StatusLine = {
-    pill("pill", { wrap_tmux_highlight(Mode) }),
+    ModeElement,
     pill("pill", { FileBlock, Git, Diagnostics }),
     Align,
     ShowCmd,

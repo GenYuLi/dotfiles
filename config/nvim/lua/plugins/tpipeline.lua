@@ -8,7 +8,13 @@ function M.setup()
   vim.g.tpipeline_cursormoved = 1
   vim.g.tpipeline_restore = 1
   vim.g.tpipeline_clearstl = 1
-  vim.g.tpipeline_size = 300
+  -- maxwidth passed to nvim_eval_statusline. The mode pill emits raw tmux
+  -- directives (#[fg=..]#[bg=..]) which nvim counts as literal display width,
+  -- so a filled badge alone is ~540 "columns". Keep this well above the total
+  -- statusline width or the piped output gets truncated and the tmux status
+  -- line goes blank. (tmux interprets the directives as zero-width, so a large
+  -- value here has no visual cost.)
+  vim.g.tpipeline_size = 2000
 
   -- https://github.com/vimpostor/vim-tpipeline/issues/19#issuecomment-1000844167
   vim.opt.fillchars:append {
