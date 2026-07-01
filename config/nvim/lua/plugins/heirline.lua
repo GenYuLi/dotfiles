@@ -28,53 +28,68 @@ function M.config()
     diag_warn = " ",
   }
 
-  -- Catppuccin (active flavour — Mocha) sourced live so the bar tracks the
-  -- colorscheme; hex fallbacks keep things sane if the palette module is gone.
-  local setup_colors = function()
-    local ok, p = pcall(function()
-      return require("catppuccin.palettes").get_palette()
-    end)
-    p = (ok and p) or {}
-    return {
-      bg = p.base or utils.get_highlight("Normal").bg or "#1e1e2e",
-      pill = p.surface0 or "#313244",
-      txt = p.subtext0 or "#a6adc8",
-      subtext0 = p.subtext0 or "#a6adc8",
-      dim = p.overlay1 or "#7f849c",
-      divider = p.overlay0 or "#6c7086",
+  -- gruvbox-material palette. Structural tones (bg/pill/text/dividers) are
+  -- sourced live from highlight groups so the bar tracks the active contrast
+  -- (soft/medium/hard); accent hues are gruvbox-material's stable "material"
+  -- variants. Everything is returned as "#rrggbb" — the tmux mode pill below
+  -- needs literal hex, so numeric hl attrs are formatted back to hex.
+  local function hl_hex(group, attr, fallback)
+    local ok, hl = pcall(vim.api.nvim_get_hl, 0, { name = group, link = false })
+    local v = ok and hl and hl[attr]
+    if type(v) == "number" then
+      return string.format("#%06x", v)
+    end
+    return fallback
+  end
 
-      lavender = p.lavender or "#b4befe",
-      green = p.green or "#a6e3a1",
-      mauve = p.mauve or "#cba6f7",
-      flamingo = p.flamingo or "#f2cdcd",
-      red = p.red or "#f38ba8",
-      yellow = p.yellow or "#f9e2af",
-      peach = p.peach or "#fab387",
-      sapphire = p.sapphire or "#74c7ec",
-      teal = p.teal or "#94e2d5",
-      blue = p.blue or "#89b4fa",
-      pink = p.pink or "#f5c2e7",
+  -- gruvbox-material accent hues (stable across soft/medium/hard contrast).
+  local accents = {
+    red = "#ea6962",
+    orange = "#e78a4e",
+    yellow = "#d8a657",
+    green = "#a9b665",
+    aqua = "#89b482",
+    blue = "#7daea3",
+    purple = "#d3869b",
+    grey = "#928374",
+  }
+
+  -- The catppuccin key names the components reference, remapped onto gruvbox.
+  local setup_colors = function()
+    return {
+      bg = hl_hex("Normal", "bg", "#1d2021"),
+      pill = hl_hex("CursorLine", "bg", "#282828"),
+      txt = hl_hex("Normal", "fg", "#d4be98"),
+      subtext0 = hl_hex("Comment", "fg", "#a89984"),
+      dim = accents.grey,
+      divider = hl_hex("LineNr", "fg", "#7c6f64"),
+
+      lavender = accents.blue,
+      green = accents.green,
+      mauve = accents.purple,
+      flamingo = accents.orange,
+      red = accents.red,
+      yellow = accents.yellow,
+      peach = accents.orange,
+      sapphire = accents.blue,
+      teal = accents.aqua,
+      blue = accents.blue,
+      pink = accents.purple,
     }
   end
 
   -- raw hex palette, used to build literal tmux #[fg=..] directives for the
   -- piped mode pill (tpipeline). Keyed by the names mode_color maps to.
-  local C = (function()
-    local ok, p = pcall(function()
-      return require("catppuccin.palettes").get_palette()
-    end)
-    p = (ok and p) or {}
-    return {
-      lavender = p.lavender or "#b4befe",
-      green = p.green or "#a6e3a1",
-      mauve = p.mauve or "#cba6f7",
-      peach = p.peach or "#fab387",
-      red = p.red or "#f38ba8",
-      pink = p.pink or "#f5c2e7",
-      yellow = p.yellow or "#f9e2af",
-      subtext0 = p.subtext0 or "#a6adc8",
-    }
-  end)()
+  local C = {
+    lavender = accents.blue,
+    green = accents.green,
+    mauve = accents.purple,
+    peach = accents.orange,
+    red = accents.red,
+    pink = accents.purple,
+    yellow = accents.yellow,
+    subtext0 = "#a89984",
+  }
 
   -- Gap/caps carry NO bg so the bar stays transparent between pills — each pill
   -- floats as a discrete lozenge on the (translucent) terminal background rather
