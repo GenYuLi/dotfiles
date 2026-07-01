@@ -189,6 +189,13 @@ in
       setNpmPrefix = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         PATH="${config.home.path}/bin:$PATH" run npm set prefix ~/.npm-global
       '';
+
+      # home-manager places custom bat themes but does NOT rebuild bat's cache,
+      # so the gruvbox-material theme (programs.bat.themes) is invisible until
+      # `bat cache --build` runs. Do it on every switch.
+      batCacheBuild = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        PATH="${config.home.path}/bin:$PATH" run bat cache --build
+      '';
     };
   };
 
@@ -231,6 +238,9 @@ in
     enable = true;
     flavor = "macchiato";
     accent = "sky";
+
+    # bat uses gruvbox-material instead (see programs.bat below), matching nvim.
+    bat.enable = false;
 
     mako.enable = dotfiles.profile == "nixos";
   };
@@ -280,6 +290,11 @@ in
 
   programs.bat = {
     enable = true;
+    config.theme = "gruvbox-material-dark";
+    themes."gruvbox-material-dark" = {
+      src = ../config/bat;
+      file = "gruvbox-material-dark.tmTheme";
+    };
     extraPackages = with pkgs.bat-extras; [
       batdiff
       batman
