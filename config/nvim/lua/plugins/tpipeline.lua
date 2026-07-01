@@ -48,6 +48,42 @@ function M.config()
     group = augroup,
   })
 
+  -- Mouse-clicking a tmux window tab doesn't deliver FocusGained, so tpipeline
+  -- never resets its last-statusline cache and the newly-focused nvim's mode
+  -- badge never re-pipes (every nvim in a session shares one vimbridge file, and
+  -- plain CursorMoved hits the cache and skips). forceupdate resets the cache.
+  -- Trigger it on cursor movement (snappy — no updatetime wait), throttled so
+  -- continuous motion doesn't spam tmux, and ONLY from the pane that is actually
+  -- displayed+focused (window_active && pane_active) so a background nvim doesn't
+  -- clobber the focused one's badge.
+  local last_force = 0
+  vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+    desc = "tpipeline forceupdate from the focused pane (mouse-switch fallback)",
+    group = augroup,
+    callback = function()
+      local now = vim.uv.now()
+      if now - last_force < 500 then
+        return
+      end
+      last_force = now
+      local pane = vim.env.TMUX_PANE
+      if not pane then
+        return
+      end
+      vim.system(
+        { "tmux", "display-message", "-pt", pane, "#{?window_active,#{?pane_active,1,0},0}" },
+        { text = true },
+        function(res)
+          if vim.trim(res.stdout or "") == "1" then
+            vim.schedule(function()
+              pcall(vim.fn["tpipeline#forceupdate"])
+            end)
+          end
+        end
+      )
+    end,
+  })
+
   -- sync status style on CursorHold
   local function sync_tmux_status_style()
     vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
