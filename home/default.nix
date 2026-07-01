@@ -105,7 +105,7 @@ in
       bun
       uv
       poetry
-      python315
+      python313
       nixpkgs-fmt
       nixfmt
       unstable.nixd
@@ -184,6 +184,10 @@ in
             echo "WARN: ssh login via nix-installed shell may break until fixed" >&2
           fi
         fi
+      '';
+
+      setNpmPrefix = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        PATH="${config.home.path}/bin:$PATH" run npm set prefix ~/.npm-global
       '';
     };
   };
