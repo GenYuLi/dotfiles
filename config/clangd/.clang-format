@@ -1,7 +1,7 @@
 # NOTE: clang-format(18) -style=google -dump-config | bat
 
 BasedOnStyle: Google
-Standard: c++20
+Standard: c++23
 
 # indent
 UseTab: ForIndentation
