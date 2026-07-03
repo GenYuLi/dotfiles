@@ -14,6 +14,11 @@ let
     '';
 in
 {
+  # gruvbox-material for the terminal (matches nvim + tmux). The global
+  # catppuccin module themes alacritty by default, so turn it off here and
+  # supply the palette below explicitly.
+  catppuccin.alacritty.enable = false;
+
   programs.alacritty = {
     enable = true;
     package = if pkgs.stdenv.isLinux then nixGLWrap pkgs.alacritty else pkgs.alacritty;
@@ -44,8 +49,49 @@ in
         program = "${pkgs.bash}/bin/bash";
         args = [ "${dotfiles.directory}/.claude/hooks/bell-notify.sh" ];
       };
+      # gruvbox-material (dark, hard — matches nvim). ANSI slots mirror the
+      # colorscheme's own g:terminal_color_* (bright == normal, black = #504945),
+      # so the terminal matches nvim exactly.
       colors = {
+        primary = {
+          background = "#1d2021";
+          foreground = "#d4be98";
+        };
+        cursor = {
+          text = "#1d2021";
+          cursor = "#d4be98";
+        };
+        vi_mode_cursor = {
+          text = "#1d2021";
+          cursor = "#7daea3";
+        };
+        selection = {
+          text = "#d4be98";
+          background = "#3c3836";
+        };
+        normal = {
+          black = "#504945";
+          red = "#ea6962";
+          green = "#a9b665";
+          yellow = "#d8a657";
+          blue = "#7daea3";
+          magenta = "#d3869b";
+          cyan = "#89b482";
+          white = "#d4be98";
+        };
+        bright = {
+          black = "#504945";
+          red = "#ea6962";
+          green = "#a9b665";
+          yellow = "#d8a657";
+          blue = "#7daea3";
+          magenta = "#d3869b";
+          cyan = "#89b482";
+          white = "#d4be98";
+        };
         indexed_colors = [
+          { index = 16; color = "#e78a4e"; }
+          { index = 17; color = "#ddc7a1"; }
           { index = 18; color = "#274d7a"; }
         ];
       };

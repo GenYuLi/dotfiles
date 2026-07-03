@@ -1,0 +1,137 @@
+local M = {
+  "vimpostor/vim-tpipeline",
+  lazy = true,
+  commit = "5f663e863df6fba9749ec6db0a890310ba4ad0a9",
+}
+
+function M.setup()
+  vim.g.tpipeline_cursormoved = 1
+  vim.g.tpipeline_restore = 1
+  vim.g.tpipeline_clearstl = 1
+  -- maxwidth passed to nvim_eval_statusline. The mode pill emits raw tmux
+  -- directives (#[fg=..]#[bg=..]) which nvim counts as literal display width,
+  -- so a filled badge alone is ~540 "columns". Keep this well above the total
+  -- statusline width or the piped output gets truncated and the tmux status
+  -- line goes blank. (tmux interprets the directives as zero-width, so a large
+  -- value here has no visual cost.)
+  vim.g.tpipeline_size = 2000
+
+  -- https://github.com/vimpostor/vim-tpipeline/issues/19#issuecomment-1000844167
+  vim.opt.fillchars:append {
+    stl = "─",
+    stlnc = "─",
+  }
+end
+
+function M.config()
+  local augroup = vim.api.nvim_create_augroup("dotfiles_tpipeline_integration", { clear = true })
+  local focused = true
+  local need_update = true
+
+  -- unset tmux option to the one set in tmux.conf
+  local function unset_tmux_option(opt)
+    vim.system { "tmux", "set-option", "-u", opt }
+  end
+
+  -- set window name to current directory
+  local function set_tmux_window_name_to_cwd()
+    local ok, cwd = pcall(vim.fn.fnamemodify, vim.uv.cwd(), ":t")
+    if ok and cwd then
+      vim.system { "tmux", "rename-window", cwd }
+    end
+  end
+
+  -- update tmux status by neovim statusline
+  vim.api.nvim_create_autocmd({ "DiagnosticChanged", "RecordingEnter" }, {
+    desc = "update tpipeline",
+    command = "call tpipeline#update()",
+    group = augroup,
+  })
+
+  -- Mouse-clicking a tmux window tab doesn't deliver FocusGained, so tpipeline
+  -- never resets its last-statusline cache and the newly-focused nvim's mode
+  -- badge never re-pipes (every nvim in a session shares one vimbridge file, and
+  -- plain CursorMoved hits the cache and skips). forceupdate resets the cache.
+  -- Trigger it on cursor movement (snappy — no updatetime wait), throttled so
+  -- continuous motion doesn't spam tmux, and ONLY from the pane that is actually
+  -- displayed+focused (window_active && pane_active) so a background nvim doesn't
+  -- clobber the focused one's badge.
+  local last_force = 0
+  vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+    desc = "tpipeline forceupdate from the focused pane (mouse-switch fallback)",
+    group = augroup,
+    callback = function()
+      local now = vim.uv.now()
+      if now - last_force < 500 then
+        return
+      end
+      last_force = now
+      local pane = vim.env.TMUX_PANE
+      if not pane then
+        return
+      end
+      vim.system(
+        { "tmux", "display-message", "-pt", pane, "#{?window_active,#{?pane_active,1,0},0}" },
+        { text = true },
+        function(res)
+          if vim.trim(res.stdout or "") == "1" then
+            vim.schedule(function()
+              pcall(vim.fn["tpipeline#forceupdate"])
+            end)
+          end
+        end
+      )
+    end,
+  })
+
+  -- sync status style on CursorHold
+  local function sync_tmux_status_style()
+    vim.api.nvim_create_autocmd({ "CursorHold", "CursorHoldI" }, {
+      once = true,
+      group = vim.api.nvim_create_augroup("dotfiles_force_update_tpipeline", { clear = true }),
+      callback = function()
+        -- check if neovim is still focused
+        if not focused then
+          return
+        end
+
+        if need_update then
+          set_tmux_window_name_to_cwd()
+          need_update = false
+        end
+      end,
+    })
+  end
+  sync_tmux_status_style()
+
+  -- matched tmux status style and statusline
+  vim.api.nvim_create_autocmd({ "ColorScheme", "FocusGained" }, {
+    callback = function(e)
+      if e.event == "FocusGained" then
+        focused = true
+        need_update = true
+      end
+      sync_tmux_status_style()
+    end,
+    group = augroup,
+  })
+
+  -- rename tmux window with CWD
+  vim.api.nvim_create_autocmd({ "DirChanged", "LspAttach" }, {
+    callback = set_tmux_window_name_to_cwd,
+    group = augroup,
+  })
+
+  -- reset tmux options set by neovim
+  vim.api.nvim_create_autocmd("VimLeavePre", {
+    callback = function()
+      vim.system { "tmux", "setw", "automatic-rename", "on" }
+      unset_tmux_option("status-left")
+      unset_tmux_option("status-right")
+      unset_tmux_option("status-style")
+    end,
+    group = augroup,
+  })
+end
+
+return M

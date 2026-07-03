@@ -52,6 +52,14 @@ nix flake check                                 # runs pre-commit checks: editor
 
 Lua-based with lazy.nvim. Core in `lua/core/` (options, mappings, autocmds, bootstrap). Plugins in `lua/plugins/` (~30 configs). LSP support for Go, Rust, Python, C++, Nix, JSON, and more. Uses 2-space indentation.
 
+**LSP architecture notes** (Neovim 0.12 + native LSP API):
+
+- LSP servers are enabled by dropping a `<server>.lua` config file into `config/nvim/after/lsp/` — `lua/plugins/lsp/init.lua` iterates that directory and calls `vim.lsp.enable()` for each.
+- **Rust LSP is managed by `rustaceanvim` (`lua/plugins/rustaceanvim.lua`), NOT lspconfig.** Do not add `after/lsp/rust_analyzer.lua` — that would spawn a second `rust_analyzer` client alongside rustaceanvim's `rust-analyzer` client, causing duplicate `gd` results, doubled diagnostics, etc. mason-lspconfig is configured with `automatic_enable = { exclude = { "rust_analyzer" } }` to enforce this. rust-analyzer settings live in `vim.g.rustaceanvim.server.default_settings['rust-analyzer']`, NOT in an `after/lsp/` file.
+- **rust-analyzer config gotcha**: `checkOnSave` is a top-level boolean (sibling to `cargo`, `check`, `procMacro`). Nesting it as `check.onSave` is silently ignored — that key doesn't exist in rust-analyzer's schema.
+- `:LspInfo` and `:LspRestart` are user-command **shims** defined in `lua/plugins/lsp/init.lua`. Newer nvim-lspconfig removed the originals; modern equivalents are `:checkhealth vim.lsp` and `vim.lsp.stop_client(...)`. The shims exist for finger memory.
+- `:RustLsp` is **buffer-local** (rustaceanvim creates it in `on_attach`). Only available inside `.rs` buffers where rust-analyzer has attached; not visible elsewhere or in global `:command` listing.
+
 ### Key Patterns
 
 - **Nixpkgs channels**: Stable (`nixos-25.11`) with unstable overlay for select packages (neovim, tmux).

@@ -18,7 +18,13 @@ in
     # https://clangd.llvm.org/config.html
     ${clangdConfig}.source = yamlFormat.generate "config.yaml" {
       CompileFlags = {
-        Add = [ "-Wall" "-Wextra" "-Wshadow" "-std=c++23" ];
+        Add = [ "-Wall" "-Wextra" "-Wshadow" "-std=c++23" ]
+          # Apple clangd (arm64) rejects __float128, but GCC 14's arm64 stddef.h
+          # puts a __float128 member into max_align_t under (__APPLE__ && __aarch64__).
+          # Redefine it to a type Apple clang accepts so clangd can parse GCC's
+          # libstdc++ (e.g. <bits/stdc++.h>). clangd-only — real g++ builds, which
+          # do support __float128, are unaffected.
+          ++ lib.optionals pkgs.stdenv.isDarwin [ "-D__float128=long double" ];
         Compiler = "${pkgs.gcc}/bin/g++";
       };
     };
