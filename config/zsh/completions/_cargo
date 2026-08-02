@@ -1,0 +1,20 @@
+#compdef cargo
+# Hardened replacement for rustup's stock _cargo shim. The stock shim runs a
+# bare `rustc --print sysroot`, which in a directory whose rust-toolchain.toml
+# pins an uninstalled toolchain makes rustup download the entire toolchain in
+# the middle of a Tab press — completion hangs and lists nothing.
+# Resolve the sysroot with auto-install disabled and fall back to the default
+# toolchain's completion script instead.
+local sysroot
+sysroot=$(RUSTUP_AUTO_INSTALL=0 rustc --print sysroot 2>/dev/null)
+if [[ ! -r $sysroot/share/zsh/site-functions/_cargo ]]; then
+  local def
+  def=$(rustup default 2>/dev/null)
+  def=${def%% *}
+  [[ -n $def ]] && sysroot=${RUSTUP_HOME:-$HOME/.rustup}/toolchains/$def
+fi
+if [[ -r $sysroot/share/zsh/site-functions/_cargo ]]; then
+  source "$sysroot/share/zsh/site-functions/_cargo"
+else
+  _default
+fi
