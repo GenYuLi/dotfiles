@@ -24,6 +24,9 @@ dotswitch                                       # home-manager switch / nixos-re
 # Pre-commit checks (run from devShell)
 nix develop                                     # enters devShell with pre-commit hooks installed
 nix flake check                                 # runs pre-commit checks: editorconfig-checker, nixpkgs-fmt, stylua
+
+# Claude Code plugins (new machine, after first `claude` login)
+./.claude/sync-plugins.sh                       # installs the user-scope plugin set (superpowers, mattpocock-skills, LSPs, ...)
 ```
 
 ## Architecture
