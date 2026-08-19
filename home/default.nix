@@ -1,4 +1,11 @@
-{ inputs, pkgs, config, lib, dotfiles, ... }:
+{
+  inputs,
+  pkgs,
+  config,
+  lib,
+  dotfiles,
+  ...
+}:
 let
   symlinkDotfiles = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles.directory}/${path}";
 
@@ -19,7 +26,8 @@ in
     ./nixd.nix
     inputs.nix-index-database.homeModules.nix-index
     inputs.catppuccin.homeModules.catppuccin
-  ] ++ (lib.optionals (dotfiles.profile == "nixos") [
+  ]
+  ++ (lib.optionals (dotfiles.profile == "nixos") [
     ../system/nixos/home.nix
   ]);
 
@@ -30,113 +38,119 @@ in
 
     inherit (dotfiles) username;
 
-    homeDirectory = with pkgs.stdenv;
+    homeDirectory =
+      with pkgs.stdenv;
       if isDarwin then
         "/Users/${dotfiles.username}"
       else if "${dotfiles.username}" == "root" then
         "/root"
       else if isLinux then
         "/home/${dotfiles.username}"
-      else "";
+      else
+        "";
 
-    packages = with pkgs; [
-      # manage itself
-      nix
+    packages =
+      with pkgs;
+      [
+        # manage itself
+        nix
 
-      # lib
-      zlib
-      iconv
-      openssl
-      pkg-config
+        # lib
+        zlib
+        iconv
+        openssl
+        pkg-config
 
-      # basic tools
-      coreutils-full
-      util-linux
-      xdg-utils
-      gnugrep
-      file
-      findutils
-      gawk
-      less
-      procps
-      wget
-      curl
-      gzip # for zcat
+        # basic tools
+        coreutils-full
+        util-linux
+        xdg-utils
+        gnugrep
+        file
+        findutils
+        gawk
+        less
+        procps
+        wget
+        curl
+        gzip # for zcat
 
-      # useful tools
-      fd
-      ripgrep
-      comma
-      tldr
-      dua
-      just
-      mprocs
+        # useful tools
+        fd
+        ripgrep
+        comma
+        tldr
+        dua
+        just
+        mprocs
 
-      # images
-      viu
-      # super fast
-      feh
+        # images
+        viu
+        # super fast
+        feh
 
-      # editor
-      unstable.neovim
-      unstable.tree-sitter
-      unzip
-      nodejs
+        # editor
+        unstable.neovim
+        unstable.tree-sitter
+        unzip
+        nodejs
 
-      # shell
-      eza
-      trash-cli
-      bashInteractive
+        # shell
+        eza
+        trash-cli
+        bashInteractive
 
-      # audio
-      # yt-dlp # temporarily disabled: curl-cffi build failure in nixpkgs
-      ffmpeg
+        # audio
+        # yt-dlp # temporarily disabled: curl-cffi build failure in nixpkgs
+        ffmpeg
 
-      # parser
-      jc
-      jq
-      jqp
-      sq
-      lnav # log viewer
+        # parser
+        jc
+        jq
+        jqp
+        sq
+        lnav # log viewer
 
-      # language specific
-      rustup
-      go
-      bun
-      uv
-      poetry
-      python313
-      nixpkgs-fmt
-      nixfmt
-      unstable.nixd
+        # language specific
+        rustup
+        go
+        bun
+        uv
+        poetry
+        python313
+        nixpkgs-fmt
+        nixfmt
+        unstable.nixd
 
-      # network
-      httpie
-      socat
+        # network
+        httpie
+        socat
 
-      # fun
-      sl
-      smassh
+        # fun
+        sl
+        smassh
 
-      # pretty stuff
-      csvlens
-      litecli
-      nix-tree
+        # pretty stuff
+        csvlens
+        litecli
+        nix-tree
 
-      navi
-      newsboat
+        navi
+        newsboat
 
-      # misc
-      nix-search-cli
-      hello-unfree #test unfree packages
-      nurl #generate nix fetcher call from repo
-      cloc
-    ] ++ (pkgs.lib.optionals pkgs.stdenv.isLinux [
-      qimgv # export QT_XCB_GL_INTEGRATION=none
-      netcat-openbsd # only the bsd version support `-k`
-    ]) ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin [
-      terminal-notifier # clickable Claude Code desktop notifications
-    ]);
+        # misc
+        nix-search-cli
+        hello-unfree # test unfree packages
+        nurl # generate nix fetcher call from repo
+        cloc
+      ]
+      ++ (pkgs.lib.optionals pkgs.stdenv.isLinux [
+        qimgv # export QT_XCB_GL_INTEGRATION=none
+        netcat-openbsd # only the bsd version support `-k`
+      ])
+      ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin [
+        terminal-notifier # clickable Claude Code desktop notifications
+      ]);
 
     sessionPath = [
       "$HOME/.uv/bin"
@@ -319,17 +333,25 @@ in
       highlight_base_name = 1;
       highlight_megabytes = 1;
       highlight_threads = 1;
-    } // (with config.lib.htop; leftMeters [
-      (bar "LeftCPUs2")
-      (bar "Memory")
-      (bar "Swap")
-    ]) // (with config.lib.htop; rightMeters [
-      (bar "RightCPUs2")
-      (text "Tasks")
-      (text "LoadAverage")
-      (text "DiskIO")
-      (text "Uptime")
-    ]);
+    }
+    // (
+      with config.lib.htop;
+      leftMeters [
+        (bar "LeftCPUs2")
+        (bar "Memory")
+        (bar "Swap")
+      ]
+    )
+    // (
+      with config.lib.htop;
+      rightMeters [
+        (bar "RightCPUs2")
+        (text "Tasks")
+        (text "LoadAverage")
+        (text "DiskIO")
+        (text "Uptime")
+      ]
+    );
   };
 
   # for fast-syntax-highlighting
