@@ -147,6 +147,28 @@ else
   term_pid="$(term_pid_from_tty "$(tty 2>/dev/null)" || true)"
 fi
 
+# ── tmux status light: ● waiting for input (Notification), ✓ turn done
+# (Stop). Truth lives on the pane (@agent_status, keyed by $TMUX_PANE so
+# pane splits stay unambiguous); a copy is aggregated onto the containing
+# window so the window tab lights up. Cleared by the pane-focus-in hook
+# in tmux.conf. Skipped when you're already looking at the pane — the
+# light means "needs attention elsewhere". Over SSH this paints the
+# REMOTE tmux (if any); the local tmux window lights via the BEL →
+# window_bell_flag path instead. ──
+paint_tmux_status() {
+  [ -n "${TMUX:-}" ] && [ -n "$saved_pane" ] || return 0
+  local v
+  v="$(tmux display-message -p -t "$saved_pane" '#{?pane_active,1,0}#{?window_active,1,0}#{?session_attached,1,0}' 2>/dev/null)"
+  [ "$v" = "111" ] && return 0
+  local mark="●"
+  [ "$event" = "Stop" ] && mark="✓"
+  tmux set-option -pt "$saved_pane" @agent_status "$mark" 2>/dev/null || return 0
+  local win
+  win="$(tmux display-message -p -t "$saved_pane" '#{window_id}' 2>/dev/null)"
+  [ -n "$win" ] && tmux set-option -wt "$win" @agent_status "$mark" 2>/dev/null
+}
+paint_tmux_status
+
 # ════════════════ Linux backend (tested) ════════════════
 # notify-send -A implies --wait (blocks until click/timeout) → detach to
 # background so the hook returns immediately. On click: tmux restore +
