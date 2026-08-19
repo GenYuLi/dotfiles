@@ -29,3 +29,12 @@ for p in "${PLUGINS[@]}"; do
     claude plugin install "$p@$MARKETPLACE" --scope user
   fi
 done
+
+# GSD (get-shit-done) is npm-based, not a marketplace plugin. Its files are
+# deliberately gitignored (.claude/{skills,agents,hooks}/gsd-*) because the
+# installer owns them and self-updates via its SessionStart hook / `/gsd:update`.
+if [[ -f "$HOME/.claude/get-shit-done/VERSION" ]]; then
+  echo "skip: get-shit-done (already installed: v$(cat "$HOME/.claude/get-shit-done/VERSION"))"
+else
+  npx -y --package=get-shit-done-cc@latest -- get-shit-done-cc --claude --global
+fi
