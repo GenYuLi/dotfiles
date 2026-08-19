@@ -39,6 +39,13 @@ let
         );
       in
       "${cmd} switch --flake ${dotDir} --show-trace";
+
+    # Bypass flaky cachix: drop williamhsieh from substituters. NOTE: only
+    # fully effective if the flake's nixConfig is NOT trusted (answer 'n' to
+    # the flake-config prompt, or set its entries to false in
+    # ~/.local/share/nix/trusted-settings.json); a trusted flake nixConfig
+    # re-appends williamhsieh AFTER command-line flags (verified on nix 2.34).
+    dotswitch-nocachix = "dotswitch --option substituters 'https://cache.nixos.org https://nix-community.cachix.org'";
   };
 
   initExtraFirst =
