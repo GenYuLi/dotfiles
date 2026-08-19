@@ -210,6 +210,28 @@ in
       batCacheBuild = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         PATH="${config.home.path}/bin:$PATH" run bat cache --build
       '';
+
+      # GSD (get-shit-done) installer bakes `process.execPath` — a
+      # /nix/store/<hash>-nodejs-*/bin/node path — into ~/.claude/settings.json
+      # hooks + statusLine. That hash changes on every nodejs bump and the old
+      # one gets GC'd, so every GSD hook dies with "No such file or directory".
+      # Rewrite it to the profile-level symlink, which home-manager re-points
+      # atomically on every switch. Idempotent: no-op once no store path remains.
+      # GSD self-update (/gsd:update) re-bakes the path; the next switch fixes it
+      # again before GC can bite.
+      fixGsdNodePath = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        settings="${config.home.homeDirectory}/.claude/settings.json"
+        stable="${config.home.profileDirectory}/bin/node"
+        pattern='/nix/store/[a-z0-9]{32}-nodejs[^/"]*/bin/node'
+        if [ -f "$settings" ] && ${pkgs.gnugrep}/bin/grep -Eq "$pattern" "$settings"; then
+          if [ -x "$stable" ]; then
+            run ${pkgs.gnused}/bin/sed -i -E "s#$pattern#$stable#g" "$settings"
+            echo "fixGsdNodePath: rewrote GSD node path -> $stable"
+          else
+            echo "WARN: fixGsdNodePath: $stable missing (nodejs not in home.packages?); left settings.json untouched" >&2
+          fi
+        fi
+      '';
     };
   };
 
