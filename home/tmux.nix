@@ -1,4 +1,9 @@
-{ pkgs, config, dotfiles, ... }:
+{
+  pkgs,
+  config,
+  dotfiles,
+  ...
+}:
 let
   dotDir = "${dotfiles.directory}";
   dataHome = "${config.xdg.dataHome}/tmux";
@@ -49,6 +54,21 @@ in
           set -g @resurrect-default-processes "ssh"
           set -g @resurrect-capture-pane-contents "on"
           set -g @resurrect-dir "${dataHome}/resurrect"
+        '';
+      }
+      {
+        # Auto-save (15 min) + auto-restore for resurrect. Continuum's own
+        # trigger rides on status-right, which vim-tpipeline OVERRIDES for the
+        # whole lifetime of a focused nvim (see tpipeline.lua VimLeavePre unset)
+        # — so with only the default hook, saves silently stop while nvim is
+        # open. Anchor a second trigger in window-status-current-format, which
+        # tpipeline never touches: the script prints nothing and self-guards
+        # the interval, so double-firing is harmless and invisible.
+        plugin = continuum;
+        extraConfig = ''
+          set -g @continuum-restore "on"
+          set -g @continuum-save-interval "15"
+          set -ga window-status-current-format "#(${continuum}/share/tmux-plugins/continuum/scripts/continuum_save.sh)"
         '';
       }
       tmux-fzf
