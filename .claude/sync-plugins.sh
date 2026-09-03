@@ -30,6 +30,25 @@ for p in "${PLUGINS[@]}"; do
   fi
 done
 
+# Third-party marketplaces: "<plugin>@<marketplace> <github-repo>".
+# Each marketplace is added on demand (idempotent) before installing.
+THIRD_PARTY=(
+  "ponytail@ponytail DietrichGebert/ponytail"  # lazy-senior-dev mode: YAGNI / stdlib-first / least code; needs node on PATH
+)
+
+for entry in "${THIRD_PARTY[@]}"; do
+  read -r id repo <<<"$entry"
+  mk="${id#*@}"
+  if [[ -f "$INSTALLED_JSON" ]] && grep -q "\"$id\"" "$INSTALLED_JSON"; then
+    echo "skip: $id (already installed)"
+    continue
+  fi
+  if ! claude plugin marketplace list 2>/dev/null | grep -qE "^[[:space:]]*❯ $mk\$"; then
+    claude plugin marketplace add "$repo"
+  fi
+  claude plugin install "$id" --scope user
+done
+
 # GSD (get-shit-done) is npm-based, not a marketplace plugin. Its files are
 # deliberately gitignored (.claude/{skills,agents,hooks}/gsd-*) because the
 # installer owns them and self-updates via its SessionStart hook / `/gsd:update`.
