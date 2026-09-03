@@ -149,7 +149,25 @@ in
         netcat-openbsd # only the bsd version support `-k`
       ])
       ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin [
-        terminal-notifier # clickable Claude Code desktop notifications
+        # clickable Claude Code desktop notifications. nixpkgs still ships
+        # 2.0.0 (2017, x86_64-only -> Rosetta on Apple silicon); 3.x is a
+        # universal binary rebuilt on UserNotifications. Drop the override
+        # once nixpkgs catches up.
+        (terminal-notifier.overrideAttrs (_: rec {
+          version = "3.1.0";
+          # stdenv's darwin fixup re-signs the Mach-O with a linker-style
+          # ad-hoc signature (Identifier=terminal-notifier, Info.plist not
+          # bound). UserNotifications then refuses authorization with
+          # "UNErrorDomain error 1" (julienXX/terminal-notifier#328). Keep
+          # upstream's sealed bundle signature instead; nothing else in
+          # fixup matters for a prebuilt .app.
+          dontFixup = true;
+          src = pkgs.fetchzip {
+            url = "https://github.com/julienXX/terminal-notifier/releases/download/${version}/terminal-notifier-${version}.zip";
+            hash = "sha256-WbkwxlOsR445RBez7oK4LURs4MifO1vK7b3m1MGxq90=";
+            stripRoot = false;
+          };
+        }))
       ]);
 
     sessionPath = [
