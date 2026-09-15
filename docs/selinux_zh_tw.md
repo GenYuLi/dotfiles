@@ -16,7 +16,11 @@ getenforce            # Enforcing / Permissive / Disabled
 sestatus              # 詳細狀態
 
 # 查看檔案的 SELinux 標籤
-ls -Z /path/to/file
+# 注意：PATH 裡若先找到 Nix 的 coreutils，ls -Z 只會印 `?`（沒編 SELinux 支援），要指名系統版
+/usr/bin/ls -Z /path/to/file
+
+# 從 journal 撈 AVC（不需要 auditd；-g 是 regex，-o cat 只印訊息本體）
+journalctl --since '-30min' -g 'avc' -o cat
 
 # 查看最近被 SELinux 擋掉的紀錄
 sudo ausearch -m avc -ts recent
@@ -40,6 +44,73 @@ sudo semanage fcontext -a -t bin_t '/nix/store/.*'
 
 # 套用標籤（會跑一陣子）
 sudo restorecon -Rv /nix/store
+```
+
+## Login shell 在 `~/.local/state/nix` 底下也會被擋（selinux-policy ≥ 44.7）
+
+上面把 `/nix/store` 標成 `bin_t` 之後，sshd 還是有可能登不進來。2026-08-28 在 Fedora 44 上遇到的案例：
+
+### 症狀
+
+Client 端只看到一個很像金鑰問題的錯誤：
+
+```
+Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
+```
+
+但 server 端 `journalctl -u sshd` 的真正訊息是：
+
+```
+sshd-session: User weitherslin not allowed because shell
+  /home/weitherslin/.local/state/nix/profile/bin/zsh does not exist
+```
+
+同時有一條 AVC：
+
+```
+avc: denied { read } comm="sshd-session" name="profile"
+  scontext=system_u:system_r:sshd_session_t
+  tcontext=unconfined_u:object_r:gconf_home_t  tclass=lnk_file permissive=0
+```
+
+sshd 在 preauth 階段就把「login shell stat 失敗」的使用者當成不存在，然後**故意**回一個像認證失敗的訊息（避免洩漏帳號是否存在），所以 client 端完全看不出是 SELinux。
+
+### 原因
+
+- 這台的 login shell 是 Nix 的 zsh：`~/.local/state/nix/profile/bin/zsh`（home-manager 開了 `use-xdg-base-directories = true`，profile 從 `~/.nix-profile` 搬到 `~/.local/state/nix/`）。
+- Fedora 的 file_contexts 把 `HOME_DIR/\.local(/.*)?` 整棵標成 `gconf_home_t`（GNOME gconf 的歷史包袱）。
+- `sshd_session_t` 沒有讀 `gconf_home_t` symlink 的規則。sshd `stat()` login shell 走到第一個 symlink `~/.local/state/nix/profile` 就失敗。
+- **為什麼以前沒事**：`sshd_session_t` 這個 domain 之前是 permissive（只記錄不擋）。selinux-policy 44.7-1.fc44 的 changelog 有一條「Remove permissive setting for sshd_auth_t and sshd_session_t」，更新後才真的開始擋。
+
+### 解法：把 Nix profile state 標成 `user_home_t`
+
+那個目錄本來就不是 GNOME 設定，用 `user_home_t` 才是語意正確的標籤，`sshd_session_t` 對它有 read symlink 的規則：
+
+```bash
+sudo semanage fcontext -a -t user_home_t "$HOME/\.local/state/nix(/.*)?"
+sudo restorecon -Rv ~/.local/state/nix
+```
+
+之後 `dotswitch` 產生的新 `profile-N-link` 會繼承父目錄的標籤，不必再跑 `restorecon`。
+
+其他選項（沒採用）：
+- `audit2allow -M` 加一條 `allow sshd_session_t gconf_home_t:lnk_file read;` — 最小，但客製 module 容易被遺忘。
+- `dnf install zsh` + `chsh -s /usr/bin/zsh` — 結構上最穩（login shell 不依賴 Nix profile），home-manager 的 `~/.zshenv` 仍會接管設定；但偏離「Nix zsh 當 login shell」的設計。
+
+### 診斷技巧
+
+```bash
+# 本機重現，不必靠另一台機器（sshd 在 2222）
+ssh -p 2222 -o BatchMode=yes weitherslin@127.0.0.1 true
+journalctl -u sshd --since '-15s' --no-pager
+
+# permissive domain 的 denial 也會被記錄（permissive=1）。
+# 從歷史撈出舊 policy 默默放行了哪些存取，可以一次看到整條 symlink chain 缺幾條規則：
+journalctl --since '-90d' -o cat -g 'scontext=system_u:system_r:sshd_session_t.*permissive=1'
+
+# 確認是不是最近的 policy 更新造成的
+rpm -q --last selinux-policy openssh-server
+rpm -q --changelog selinux-policy | head -n 30
 ```
 
 ## sshd 使用非標準 Port
