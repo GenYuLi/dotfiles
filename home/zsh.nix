@@ -29,17 +29,6 @@ let
     cpcmd = "fc -ln -1 | awk '{$1=$1}1' | tee /dev/fd/2 | yank";
     gdbrun = "gdb -ex=run --args";
 
-    dotswitch =
-      let
-        cmd = (
-          if isSystemConfig then
-            (if pkgs.stdenv.isLinux then "sudo nixos-rebuild" else "darwin-rebuild")
-          else
-            "home-manager"
-        );
-      in
-      "${cmd} switch --flake ${dotDir} --show-trace";
-
     # Bypass flaky cachix: drop williamhsieh from substituters. NOTE: only
     # fully effective if the flake's nixConfig is NOT trusted (answer 'n' to
     # the flake-config prompt, or set its entries to false in
@@ -114,6 +103,24 @@ let
       export QT_IM_MODULE=fcitx
       export XMODIFIERS=@im=fcitx
     fi
+
+    # dotswitch: rebuild + switch, then sync Claude Code plugins. A function,
+    # not an alias, so extra args (see dotswitch-nocachix) reach the switch
+    # command instead of the sync script. sync-plugins.sh is idempotent and
+    # only shells out to `claude` for plugins not yet recorded as installed.
+    dotswitch() {
+      ${
+        if isSystemConfig then
+          (if pkgs.stdenv.isLinux then "sudo nixos-rebuild" else "darwin-rebuild")
+        else
+          "home-manager"
+      } switch --flake ${dotDir} --show-trace "$@" || return $?
+      if command -v claude &>/dev/null; then
+        ${dotDir}/.claude/sync-plugins.sh
+      else
+        echo "dotswitch: claude not on PATH; skipped .claude/sync-plugins.sh" >&2
+      fi
+    }
 
     # other settings
     source ${dotDir}/config/zsh/.zshrc
