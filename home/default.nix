@@ -170,7 +170,15 @@ in
         }))
       ]);
 
+    # hm-session-vars.sh is the only PATH setup a non-login, non-interactive
+    # SSH shell gets (mobile SSH clients probe for tmux/herdr that way), and it
+    # only prepends this list — the profile bin dir itself is normally added by
+    # /etc/profile.d/nix.sh, which login shells alone read. Without it such a
+    # shell falls back to the distro tmux client against the Nix tmux server.
+    # ~/.local/bin is where the herdr installer lands.
     sessionPath = [
+      "${config.home.profileDirectory}/bin"
+      "$HOME/.local/bin"
       "$HOME/.uv/bin"
     ];
 
