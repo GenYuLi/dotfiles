@@ -22,6 +22,7 @@ in
     ./alacritty.nix
     ./ghostty.nix
     ./desktop.nix
+    ./herdr-pwa.nix
     ./cpp.nix
     ./nixd.nix
     inputs.nix-index-database.homeModules.nix-index
@@ -258,6 +259,34 @@ in
           fi
         fi
       '';
+
+      # herdr (agent multiplexer) is deliberately NOT a Nix package: upstream
+      # cuts a stable roughly every two weeks and ships its own `herdr update`,
+      # so pinning it in flake.lock would only add lag. Bootstrap the official
+      # installer into ~/.local/bin on the first switch; once the binary exists
+      # this is a no-op, so an offline switch never fails here and upgrades
+      # stay in herdr's hands.
+      installHerdr = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        herdr="${config.home.homeDirectory}/.local/bin/herdr"
+        if [ ! -x "$herdr" ]; then
+          tmp="$(mktemp)"
+          if run ${pkgs.curl}/bin/curl -fsSL --retry 3 --connect-timeout 10 https://herdr.dev/install.sh -o "$tmp"; then
+            if PATH="${
+              lib.makeBinPath [
+                pkgs.curl
+                pkgs.gawk
+              ]
+            }:$PATH" run /bin/sh "$tmp"; then
+              echo "installHerdr: installed herdr -> $herdr"
+            else
+              echo "WARN: installHerdr: installer failed; retry with: curl -fsSL https://herdr.dev/install.sh | sh" >&2
+            fi
+          else
+            echo "WARN: installHerdr: could not fetch installer (offline?); skipped" >&2
+          fi
+          rm -f "$tmp"
+        fi
+      '';
     };
   };
 
@@ -414,6 +443,9 @@ in
       options = "--delete-older-than 30d";
     };
   };
+
+  # Phone front-end for herdr; see home/herdr-pwa.nix for the manual steps.
+  programs.herdr-pwa.enable = pkgs.stdenv.isLinux && dotfiles.profile == "home";
 
   services.pueue = {
     enable = pkgs.stdenv.isLinux;
