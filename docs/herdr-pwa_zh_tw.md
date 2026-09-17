@@ -84,7 +84,7 @@ gateway 只綁 `127.0.0.1`，機器外連不到。`tailscale serve` 是 tailscal
 | 更新 PWA | `herdr-pwa-update` |
 | 看 gateway log | `journalctl --user -u herdr-pwa -f` |
 | 換 token | `rm ~/.config/herdr-pwa/env && dotswitch`，手機重貼 |
-| 開語音轉錄 | env 刪掉 `WHISPER_RUNNER=/bin/false`，`systemctl --user restart herdr-pwa`；需 NVIDIA GPU，首次會拉 CUDA wheel 與 large-v3 模型（約 3 GB） |
+| 開語音轉錄 | env 刪掉 `WHISPER_RUNNER=...whisper-disabled` 那行（那是一個永遠回 error 的假 worker；不能用 `/bin/false`，worker 秒退會讓 gateway EPIPE crash），`systemctl --user restart herdr-pwa`；需 NVIDIA GPU，首次會拉 CUDA wheel 與 large-v3 模型（約 3 GB） |
 
 ## 疑難排解
 
