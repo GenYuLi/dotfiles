@@ -55,6 +55,18 @@ NOTIFY_HOOK="$HOME/.claude/hooks/cc-notify.sh"
 HOOKS_JSON="$CODEX_DIR/hooks.json"
 if [[ -e "$NOTIFY_HOOK" ]] && command -v jq >/dev/null 2>&1; then
   [[ -s "$HOOKS_JSON" ]] || echo '{}' >"$HOOKS_JSON"
+  # GSD (seen with v1.42.3) writes its events at the top level of hooks.json.
+  # Codex only accepts `description` and `hooks` there and rejects the whole
+  # file otherwise ("unknown field `SessionStart`"), which silently disables
+  # EVERY hook, herdr's agent-state reporting included. Fold stray top-level
+  # event arrays into `.hooks`; a no-op once the file is well-formed.
+  if jq -e 'to_entries | any(.key != "description" and .key != "hooks")' "$HOOKS_JSON" >/dev/null 2>&1; then
+    tmp="$(mktemp)"
+    jq 'reduce (to_entries[] | select(.key != "description" and .key != "hooks")) as $e
+          (.; .hooks[$e.key] = ((.hooks[$e.key] // []) + (if ($e.value | type) == "array" then $e.value else [] end))
+              | del(.[$e.key]))' "$HOOKS_JSON" >"$tmp" && mv "$tmp" "$HOOKS_JSON"
+    echo "fixed: folded top-level events in hooks.json under .hooks (Codex rejected the file)"
+  fi
   notify_cmd="bash '$NOTIFY_HOOK' --agent codex"
   for ev in Stop PermissionRequest; do
     if jq -e --arg ev "$ev" '[.hooks[$ev][]?.hooks[]?.command // empty] | any(test("cc-notify\\.sh"))' "$HOOKS_JSON" >/dev/null 2>&1; then
