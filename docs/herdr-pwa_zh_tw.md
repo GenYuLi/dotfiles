@@ -150,6 +150,6 @@ gateway 在 agent 變成 **blocked**（Agent needs you）或**完成**（done，
 | service 沒起來，`status` 顯示 condition failed | `dist/` 還沒 build，跑 `herdr-pwa-update` |
 | PWA 顯示 herdr 無法連線 | `systemctl --user status herdr-server`；或 `HERDR_SOCKET_PATH` 跟 `herdr --help` 顯示的不同 |
 | 401 | token 不對；看 `~/.config/herdr-pwa/env` |
-| 手機 SSH client 找不到 tmux / herdr | `ssh -p 2222 localhost 'command -v herdr tmux'` 檢查非 login shell PATH，應該指到 Nix profile 與 `~/.local/bin` |
+| 手機 SSH client 找不到 tmux / herdr | `ssh -p <port> localhost 'command -v herdr tmux'` 檢查非 login shell PATH，應該指到 Nix profile 與 `~/.local/bin` |
 | 想照 upstream 範例加 `ProtectHome=read-only` | 不行，會擋掉 `~/.config/herdr/herdr.sock` 的 connect |
-| 本機 sshd 在 2222 不是 22 | 手機 host 設定要填 port |
+| sshd 不在預設的 22 | 手機 host 設定要填對 port |

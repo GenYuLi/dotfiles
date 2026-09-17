@@ -1,6 +1,6 @@
 # Global user instructions (cross-machine, dotfiles-managed)
 
-This is the user-level CLAUDE.md for Withers (Hsuan-Yu Lin), symlinked from `~/dotfiles/.claude/CLAUDE.md` and loaded into every session on every machine. Keep it lean — it loads everywhere. Machine-specific or project-specific guidance belongs in a project CLAUDE.md, not here.
+This is the user-level CLAUDE.md for Withers, symlinked from `~/dotfiles/.claude/CLAUDE.md` and loaded into every session on every machine. Keep it lean — it loads everywhere. Machine-specific or project-specific guidance belongs in a project CLAUDE.md, not here.
 
 ## Authoring skills and agents
 

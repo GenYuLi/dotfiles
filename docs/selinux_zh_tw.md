@@ -61,8 +61,8 @@ Permission denied (publickey,gssapi-keyex,gssapi-with-mic).
 但 server 端 `journalctl -u sshd` 的真正訊息是：
 
 ```
-sshd-session: User weitherslin not allowed because shell
-  /home/weitherslin/.local/state/nix/profile/bin/zsh does not exist
+sshd-session: User <user> not allowed because shell
+  /home/<user>/.local/state/nix/profile/bin/zsh does not exist
 ```
 
 同時有一條 AVC：
@@ -100,8 +100,8 @@ sudo restorecon -Rv ~/.local/state/nix
 ### 診斷技巧
 
 ```bash
-# 本機重現，不必靠另一台機器（sshd 在 2222）
-ssh -p 2222 -o BatchMode=yes weitherslin@127.0.0.1 true
+# 本機重現，不必靠另一台機器（`<port>` 換成你的 sshd port）
+ssh -p <port> -o BatchMode=yes <user>@127.0.0.1 true
 journalctl -u sshd --since '-15s' --no-pager
 
 # permissive domain 的 denial 也會被記錄（permissive=1）。
@@ -115,9 +115,9 @@ rpm -q --changelog selinux-policy | head -n 30
 
 ## sshd 使用非標準 Port
 
-Fedora 的 SELinux policy 預設只允許 sshd bind port 22。如果改用其他 port（如 2222），需要：
+Fedora 的 SELinux policy 預設只允許 sshd bind port 22。如果改用其他 port，需要：
 
 ```bash
-sudo semanage port -a -t ssh_port_t -p tcp 2222
+sudo semanage port -a -t ssh_port_t -p tcp <port>
 sudo systemctl restart sshd
 ```
