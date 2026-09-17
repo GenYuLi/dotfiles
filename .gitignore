@@ -15,3 +15,8 @@ config/navi/navi.log
 .claude/gsd-*.json
 .claude/.gsd-profile
 .claude/gsd-migration-journal/
+
+# Skills Claude Code syncs down from the claude.ai account. They land here only
+# because ~/.claude/skills is an out-of-store symlink into this tree. Not ours to
+# version, and the bucket directory names carry account/org identifiers.
+.claude/skills/synced/
