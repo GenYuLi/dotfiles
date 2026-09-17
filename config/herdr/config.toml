@@ -1,7 +1,9 @@
-# herdr configuration — symlinked to ~/.config/herdr/config.toml by home-manager
-# (out-of-store symlink, so herdr's own writes land in this file; commit them if
-# you want to keep them). Full reference: `herdr --default-config`.
-# Validate after editing: `herdr config check`; apply: `herdr server reload-config`.
+# Seed for ~/.config/herdr/config.toml. home-manager copies this ONCE, when that
+# file does not exist yet (home.activation.seedHerdrConfig); after that herdr
+# owns the live file and rewrites it from its wizard/settings UI. Editing this
+# file changes what new machines start with, not a machine already seeded.
+# Full reference: `herdr --default-config`. Validate: `herdr config check`.
+# Apply edits to the live file with: `herdr server reload-config`.
 
 # Choices made in herdr's first-run wizard (2026-09-17). Kept here because herdr
 # wrote them to a plain ~/.config/herdr/config.toml before the symlink existed.

@@ -26,6 +26,7 @@ iPhone PWA ── HTTPS/WebSocket ── tailscale serve ── 127.0.0.1:8787 (
 `home/default.nix`：
 
 - `home.sessionPath` 前面加了 Nix profile bin 和 `~/.local/bin`。SSH 進來的非 login shell（手機 client 偵測 session 用的就是這種）本來只看得到 distro 的 tmux，看不到 herdr。
+- `home.activation.seedHerdrConfig`：`~/.config/herdr/config.toml` 不存在時，從 repo 的 `config/herdr/config.toml` 複製一份（gruvbox-material、手機版面門檻 80）。只種一次，之後這個檔歸 herdr 管，它的設定精靈和 UI 會改寫它；刻意不用 symlink，否則 switch 會因為檔案衝突失敗。
 - `home.activation.installHerdr`：`~/.local/bin/herdr` 不存在時跑 install.sh，之後 switch 是 no-op；離線只印 WARN。
 
 `home/herdr-pwa.nix`（`programs.herdr-pwa.enable`，預設 Linux + home profile 開）：

@@ -266,6 +266,19 @@ in
       # installer into ~/.local/bin on the first switch; once the binary exists
       # this is a no-op, so an offline switch never fails here and upgrades
       # stay in herdr's hands.
+      # herdr owns ~/.config/herdr/config.toml: its first-run wizard and settings
+      # UI rewrite the file, which collides with a home-manager-managed symlink
+      # (the switch refuses to clobber it). So only seed it: copy the repo's
+      # starting point once, as a plain writable file, and never touch it again.
+      # Before reloadSystemd so herdr-server reads it on its very first start.
+      seedHerdrConfig = lib.hm.dag.entryBetween [ "reloadSystemd" ] [ "writeBoundary" ] ''
+        cfg="${config.xdg.configHome}/herdr/config.toml"
+        if [ ! -e "$cfg" ]; then
+          run install -Dm644 ${../config/herdr/config.toml} "$cfg"
+          echo "seedHerdrConfig: seeded $cfg (herdr owns it from here on)"
+        fi
+      '';
+
       # Ordered before reloadSystemd so that on a fresh machine the binary is
       # already there when sd-switch starts herdr-server (home/herdr-pwa.nix).
       installHerdr = lib.hm.dag.entryBetween [ "reloadSystemd" ] [ "writeBoundary" ] ''
@@ -308,8 +321,6 @@ in
     "nvim".source = symlinkDotfiles "config/nvim";
     "vim".source = symlinkDotfiles "config/vim";
     "navi".source = symlinkDotfiles "config/navi";
-    # Per-file, not the whole dir: ~/.config/herdr also holds herdr.sock and logs.
-    "herdr/config.toml".source = symlinkDotfiles "config/herdr/config.toml";
     "newsboat/config".source = symlinkDotfiles "config/newsboat/config";
     "zsh/autoload/fuzzy-job.zsh".source = symlinkDotfiles "config/zsh/autoload/fuzzy-job.zsh";
     "newsboat/themes/catppuccin".source = "${config.catppuccin.sources.newsboat}/dark";
