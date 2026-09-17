@@ -33,6 +33,7 @@ iPhone PWA ── HTTPS/WebSocket ── tailscale serve ── 127.0.0.1:8787 (
 | 東西 | 內容 |
 |------|------|
 | `herdr-pwa-update` | clone（不存在時）或 `git pull --ff-only`，`npm ci && npm run build`，重啟 service |
+| `herdr-server.service`（user） | `herdr server` headless，獨立 cgroup；`X-SwitchMethod=keep-old`，`dotswitch` 永遠不會重啟它 |
 | `herdr-pwa.service`（user） | `npm start` 在 repoDir，`HERDR_BIN` 指到 `~/.local/bin/herdr`；`dist/` 不存在時不啟動 |
 | `~/.config/herdr-pwa/env` | activation 第一次產生，token 用 `openssl rand -hex 32`，chmod 600，之後不覆蓋 |
 
@@ -53,9 +54,12 @@ programs.herdr-pwa = {
 dotswitch                                   # 裝 herdr、寫 env、註冊 unit
 sudo tailscale up                           # 手機也裝 Tailscale app
 herdr-pwa-update                            # clone + build + 啟動 service
-tailscale serve --bg http://127.0.0.1:8787  # 見下節
-herdr                                       # 讓 herdr server 起來（detach 用 ctrl+b q）
+sudo tailscale serve --bg http://127.0.0.1:8787  # 見下節；設定存在 tailscaled，重開機還在
+loginctl enable-linger "$USER"              # user service 開機就起，不用等登入
+herdr integration status                    # claude 應為 current；否則 herdr integration install claude
 ```
+
+herdr server 由 `herdr-server.service` 常駐，不用手動開。桌機上打 `herdr` 只是 attach 上去（detach 用 `ctrl+b q`）。
 
 Tailscale admin console → DNS → 開 **HTTPS Certificates**（`tailscale serve` 需要）。
 
@@ -66,6 +70,58 @@ iPhone：Tailscale 連上 → Safari 開 `tailscale serve status` 顯示的網�
 gateway 只綁 `127.0.0.1`，機器外連不到。`tailscale serve` 是 tailscaled 內建的 reverse proxy：把 loopback 的 port 掛到 `https://<hostname>.<tailnet>.ts.net`，憑證由 Tailscale 自動向 Let's Encrypt 申請，而且只有 tailnet 成員連得到。`--bg` 是讓設定寫進 tailscaled state，重開機還在。
 
 需要 HTTPS 的原因：PWA 安裝、Service Worker、web push、麥克風權限，Safari 都只在 secure context 給。
+
+## 開機與重開機
+
+目標：開機後什麼都不用做，手機直接連得上；`dotswitch` 不會打斷正在跑的 agent。
+
+啟動鏈：
+
+```
+開機
+  ├─ tailscaled（system）       ── 自動還原 `tailscale serve` 設定 → https://<host>.<tailnet>.ts.net
+  └─ user manager（需要 linger，否則等你登入才起）
+      ├─ herdr-server.service  ── ~/.local/bin/herdr server，pane 與 agent 都活在這個 cgroup
+      └─ herdr-pwa.service     ── After/Wants herdr-server；`dist/` 存在才啟動
+```
+
+為什麼 server 要獨立一個 unit：如果 server 沒在跑，gateway 用 node-pty 起的 herdr client 會自己生一個 server 當子行程。那個 server 會活在 gateway 的 cgroup 裡，gateway 一重啟（例如 `herdr-pwa-update`）所有 agent 跟著死。
+
+| 情況 | 會發生什麼 |
+|------|------------|
+| `dotswitch` | `herdr-pwa` 的 unit 有變就重啟（手機自動重連）；`herdr-server` 因為 `keep-old` **不動**，unit 變更要等手動重啟或重開機才生效 |
+| `herdr-pwa-update` | 只重啟 gateway，agent 不受影響 |
+| `herdr update` | herdr 自己處理 server 換版；之後看 `herdr status` |
+| 重開機 | 兩個 service 自動起來；pane 裡原本跑的程式不會復活，agent 要重新開 |
+| 手動停 server | `systemctl --user stop herdr-server`，**會殺掉所有 pane** |
+
+檢查：
+
+```bash
+systemctl --user status herdr-server herdr-pwa
+herdr status                       # server: running
+tailscale serve status             # / proxy http://127.0.0.1:8787
+loginctl show-user "$USER" -p Linger
+```
+
+## 推播通知
+
+gateway 在 agent 變成 **blocked**（Agent needs you）或**完成**（done，或從 working／blocked 回到 idle，Agent finished）時發 web push。你正在看那個 pane 時不會發。
+
+前提：
+
+- iOS 16.4 以上，而且必須是**從主畫面啟動的 PWA**，Safari 分頁裡不行。
+- herdr 要能看懂 agent 狀態：`herdr integration status` 裡 `claude` 要是 `current`。
+- VAPID key 由 gateway 第一次啟動時自動生成在 `data/push/vapid.json`，不用手動設。
+
+開啟：從 control bar 往上滑開面板，找到 **Agent notifications**，點它旁邊的按鈕，iOS 跳出權限詢問時選允許。
+
+| 按鈕顯示 | 意思 |
+|----------|------|
+| Unavailable | 不是從主畫面啟動，或 iOS 版本太舊 |
+| Blocked | 之前按過不允許；到 iOS 設定 → 通知 → Herdr Remote 打開 |
+
+測試：在 herdr 開一個 pane 跑 `claude`，給它一個需要授權的指令，然後把手機切到別的 app 或鎖屏。
 
 ## 部署到新機器（例如公司 workstation）
 
@@ -91,7 +147,7 @@ gateway 只綁 `127.0.0.1`，機器外連不到。`tailscale serve` 是 tailscal
 | 現象 | 原因 / 解法 |
 |------|-------------|
 | service 沒起來，`status` 顯示 condition failed | `dist/` 還沒 build，跑 `herdr-pwa-update` |
-| PWA 顯示 herdr 無法連線 | herdr server 沒跑（在桌機開一次 `herdr`），或 `HERDR_SOCKET_PATH` 跟 `herdr --help` 顯示的不同 |
+| PWA 顯示 herdr 無法連線 | `systemctl --user status herdr-server`；或 `HERDR_SOCKET_PATH` 跟 `herdr --help` 顯示的不同 |
 | 401 | token 不對；看 `~/.config/herdr-pwa/env` |
 | 手機 SSH client 找不到 tmux / herdr | `ssh -p 2222 localhost 'command -v herdr tmux'` 檢查非 login shell PATH，應該指到 Nix profile 與 `~/.local/bin` |
 | 想照 upstream 範例加 `ProtectHome=read-only` | 不行，會擋掉 `~/.config/herdr/herdr.sock` 的 connect |

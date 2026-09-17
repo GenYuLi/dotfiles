@@ -26,6 +26,7 @@
 }:
 let
   cfg = config.programs.herdr-pwa;
+  herdrBin = "${config.home.homeDirectory}/.local/bin/herdr";
   envDir = "${config.xdg.configHome}/herdr-pwa";
   envFile = "${envDir}/env";
 
@@ -144,8 +145,14 @@ in
     systemd.user.services.herdr-pwa = lib.mkIf pkgs.stdenv.isLinux {
       Unit = {
         Description = "Herdr Remote PWA gateway";
-        After = [ "network-online.target" ];
-        Wants = [ "network-online.target" ];
+        After = [
+          "network-online.target"
+          "herdr-server.service"
+        ];
+        Wants = [
+          "network-online.target"
+          "herdr-server.service"
+        ];
         # Only meaningful after the first `herdr-pwa-update` has built dist/.
         ConditionPathExists = "${cfg.repoDir}/dist";
       };
@@ -156,16 +163,44 @@ in
         Environment = [
           # node-pty spawns the real herdr client; point at the installer's binary
           # instead of relying on the (minimal) systemd user PATH.
-          "HERDR_BIN=${config.home.homeDirectory}/.local/bin/herdr"
+          "HERDR_BIN=${herdrBin}"
           "PATH=${lib.makeBinPath [ pkgs.nodejs ]}:${config.home.homeDirectory}/.local/bin:/usr/bin"
         ];
         ExecStart = "${pkgs.nodejs}/bin/npm start";
         Restart = "on-failure";
         RestartSec = 3;
-        NoNewPrivileges = true;
-        PrivateTmp = true;
-        # Upstream's example adds ProtectHome=read-only; that blocks connect() on
-        # the herdr Unix socket under ~/.config, so it is deliberately omitted.
+        # No sandboxing on purpose. Upstream's example has ProtectHome=read-only,
+        # which blocks connect() on the herdr socket under ~/.config. And if the
+        # server is ever down, the gateway's herdr client spawns one as its own
+        # child: NoNewPrivileges/PrivateTmp would then be inherited by every pane
+        # (sudo breaks, /tmp is private). This process hands out a full shell
+        # anyway, so those flags bought nothing.
+      };
+      Install.WantedBy = [ "default.target" ];
+    };
+
+    # The herdr server gets its own unit so panes and agents live in *its* cgroup:
+    # restarting or updating the gateway must never take the agents down with it.
+    systemd.user.services.herdr-server = lib.mkIf pkgs.stdenv.isLinux {
+      Unit = {
+        Description = "herdr headless server (agent multiplexer)";
+        ConditionPathExists = herdrBin;
+        # Stopping this unit kills every pane. Never let `dotswitch` restart it
+        # because the unit file changed; changes apply on the next manual
+        # restart or reboot. (Only stable paths below, no /nix/store, for the
+        # same reason.)
+        X-SwitchMethod = "keep-old";
+      };
+      Service = {
+        Type = "simple";
+        ExecStart = "${herdrBin} server";
+        # Panes inherit this. Interactive zsh rebuilds PATH from hm-session-vars,
+        # but anything herdr execs directly only ever sees what is set here.
+        Environment = [
+          "PATH=${config.home.profileDirectory}/bin:${config.home.homeDirectory}/.local/bin:${config.home.homeDirectory}/.uv/bin:/usr/local/bin:/usr/bin"
+        ];
+        Restart = "on-failure";
+        RestartSec = 3;
       };
       Install.WantedBy = [ "default.target" ];
     };

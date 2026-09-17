@@ -266,7 +266,9 @@ in
       # installer into ~/.local/bin on the first switch; once the binary exists
       # this is a no-op, so an offline switch never fails here and upgrades
       # stay in herdr's hands.
-      installHerdr = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      # Ordered before reloadSystemd so that on a fresh machine the binary is
+      # already there when sd-switch starts herdr-server (home/herdr-pwa.nix).
+      installHerdr = lib.hm.dag.entryBetween [ "reloadSystemd" ] [ "writeBoundary" ] ''
         herdr="${config.home.homeDirectory}/.local/bin/herdr"
         if [ ! -x "$herdr" ]; then
           tmp="$(mktemp)"
