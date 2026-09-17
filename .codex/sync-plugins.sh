@@ -46,6 +46,29 @@ if command -v herdr >/dev/null 2>&1; then
   fi
 fi
 
+# --- Desktop/remote notifications: reuse the Claude Code hook ---
+# .claude/hooks/cc-notify.sh is agent-agnostic (`--agent codex`). Codex has no
+# Notification event; PermissionRequest is its "needs you", Stop its "turn
+# finished". hooks.json is shared with GSD and herdr, so entries are merged in
+# with jq rather than templated, under `.hooks.<Event>` like herdr's own.
+NOTIFY_HOOK="$HOME/.claude/hooks/cc-notify.sh"
+HOOKS_JSON="$CODEX_DIR/hooks.json"
+if [[ -e "$NOTIFY_HOOK" ]] && command -v jq >/dev/null 2>&1; then
+  [[ -s "$HOOKS_JSON" ]] || echo '{}' >"$HOOKS_JSON"
+  notify_cmd="bash '$NOTIFY_HOOK' --agent codex"
+  for ev in Stop PermissionRequest; do
+    if jq -e --arg ev "$ev" '[.hooks[$ev][]?.hooks[]?.command // empty] | any(test("cc-notify\\.sh"))' "$HOOKS_JSON" >/dev/null 2>&1; then
+      echo "skip: codex $ev notify hook (already registered)"
+    else
+      tmp="$(mktemp)"
+      jq --arg ev "$ev" --arg cmd "$notify_cmd" \
+        '.hooks[$ev] = ((.hooks[$ev] // []) + [{hooks: [{type: "command", command: $cmd, timeout: 10}]}])' \
+        "$HOOKS_JSON" >"$tmp" && mv "$tmp" "$HOOKS_JSON"
+      echo "added: codex $ev notify hook"
+    fi
+  done
+fi
+
 # --- Curated plugins (the official catalogue; needs `codex login`) ---
 # The catalogue lives in the reserved remote marketplace below and is empty
 # while logged out. Installed state is NOT recorded in config.toml, so the

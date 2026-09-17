@@ -8,8 +8,20 @@
 #   Linux/KDE : notify-send -A  +  KWin scripting raise-by-PID      [tested]
 #   macOS     : terminal-notifier -execute + System Events raise    [tested]
 #
-# Wired in ~/.claude/settings.json under hooks.Notification.
+# Wired in ~/.claude/settings.json under hooks.Notification and hooks.Stop.
+# Codex reuses it as `cc-notify.sh --agent codex` for its Stop and
+# PermissionRequest hooks (registered by .codex/sync-plugins.sh); Codex parses a
+# hook's stdout as a decision, so this script never writes to stdout.
 # Icon override: ~/.claude/assets/claude.png (else Freedesktop `starred`).
+#
+# The agent may live in a tmux pane, in a herdr pane, or in a bare terminal.
+# herdr's own toasts are drawn by an attached herdr client, so with nobody
+# attached (e.g. the terminal was handed back to tmux) this hook is the only
+# thing that can reach the desktop.
+#
+# Optional remote channel: ~/.config/cc-notify/env with
+#   CC_NOTIFY_WEBHOOK_URL=https://hooks.slack.com/services/...
+#   CC_NOTIFY_WEBHOOK_EVENTS="Notification PermissionRequest"   # default
 
 set -u
 
@@ -18,6 +30,17 @@ ICON_PATH="$HOME/.claude/assets/claude.png"
 
 # Shared notification primitives (KWin runner, macOS frontmost/toast).
 . "$(dirname "$SELF")/notify-lib.sh"
+
+# ── Which agent is calling? Claude Code unless told otherwise. ──
+AGENT="Claude"
+if [ "${1:-}" = "--agent" ]; then
+  case "${2:-}" in
+    codex | Codex) AGENT="Codex" ;;
+    "") ;;
+    *) AGENT="$2" ;;
+  esac
+  shift 2 2>/dev/null || shift $#
+fi
 
 # ── Terminal emulator regex (covers Linux + macOS terminals) ──
 TERM_RE='lacritty|ghostty|kitty|foot|wezterm|konsole|gnome-terminal|xterm|iTerm|Terminal'
@@ -61,6 +84,79 @@ tmux_restore() {
   fi
   tmux select-window -t "$pane" 2>/dev/null
   tmux select-pane -t "$pane" 2>/dev/null
+}
+
+# ── herdr awareness ──
+# herdr exports these into every pane it spawns.
+in_herdr() { [ "${HERDR_ENV:-}" = 1 ] && [ -n "${HERDR_PANE_ID:-}" ]; }
+herdr_bin() { command -v herdr 2>/dev/null || printf '%s\n' "$HOME/.local/bin/herdr"; }
+
+# PIDs of the terminal-emulator windows that currently show a herdr client.
+# `herdr server` has no tty; a client spawned by a gateway (herdr-pwa's
+# node-pty) has a tty but no terminal emulator above it, so term_pid_from_tty
+# fails and it is ignored: a phone looking at herdr is not you at the desk.
+herdr_term_pids() {
+  local p args tty t out=""
+  for p in $(pgrep -x herdr 2>/dev/null); do
+    args="$(ps -o args= -p "$p" 2>/dev/null)"
+    case "$args" in *" server"*) continue ;; esac
+    tty="$(ps -o tty= -p "$p" 2>/dev/null | tr -d ' ')"
+    case "$tty" in "" | "?" | "??") continue ;; esac
+    t="$(term_pid_from_tty "/dev/$tty" 2>/dev/null)" || continue
+    [ -n "$t" ] && out="$out${out:+ }$t"
+  done
+  printf '%s\n' "$out"
+}
+
+# Is this agent's pane the one herdr has focused?
+herdr_pane_focused() {
+  "$(herdr_bin)" api snapshot 2>/dev/null |
+    jq -e --arg id "$HERDR_PANE_ID" \
+      '[.. | objects | select(.pane_id? == $id)][0].focused == true' >/dev/null 2>&1
+}
+
+# viewing=1 → the agent's pane is what the user has on screen, so a Stop toast
+# would be noise. view_term_pids narrows "on screen" to specific terminal
+# windows when known (herdr); empty means "any focused terminal" (tmux/bare).
+compute_viewing() {
+  viewing=1
+  view_term_pids=""
+  if [ -n "$saved_pane" ]; then
+    viewing=0
+    local v
+    v="$(tmux display-message -p -t "$saved_pane" '#{?pane_active,1,0}#{?window_active,1,0}#{?session_attached,1,0}' 2>/dev/null)"
+    [ "$v" = "111" ] && viewing=1
+  elif in_herdr; then
+    # Without $TMUX_PANE the old default was viewing=1, i.e. "some terminal is
+    # focused" — true even when that terminal shows tmux and nobody has herdr
+    # open, which swallowed every turn-finished toast.
+    viewing=0
+    view_term_pids="$(herdr_term_pids)"
+    if [ -n "$view_term_pids" ] && herdr_pane_focused; then
+      viewing=1
+    fi
+  fi
+}
+
+# Click on a toast for an agent in herdr: bring herdr to the user.
+herdr_jump() {
+  local hb pids ctty tpid
+  hb="$(herdr_bin)"
+  [ -n "${HERDR_TAB_ID:-}" ] && "$hb" tab focus "$HERDR_TAB_ID" >/dev/null 2>&1
+  pids="$(herdr_term_pids)"
+  if [ -n "$pids" ]; then
+    raise_pid_kwin "${pids%% *}"
+    return 0
+  fi
+  # Nobody has herdr open: hand the most recently used tmux client over to it,
+  # the same swap `prefix + H` does (config/tmux/notes.conf); detaching from
+  # herdr re-attaches tmux.
+  ctty="$(tmux list-clients -F '#{client_activity} #{client_tty}' 2>/dev/null | sort -n | tail -n 1 | cut -d' ' -f2)"
+  [ -n "$ctty" ] || return 0
+  tpid="$(term_pid_from_tty "$ctty" || true)"
+  tmux detach-client -t "$ctty" -E "\"$hb\"; exec tmux attach" 2>/dev/null
+  [ -n "$tpid" ] && raise_pid_kwin "$tpid"
+  return 0
 }
 
 # ── Linux/KDE: raise a window by PID via KWin scripting ──
@@ -111,6 +207,7 @@ if [ "${1:-}" = "--jump" ]; then
 fi
 
 # ════════════════ shared setup ════════════════
+exec >/dev/null # Codex reads hook stdout as a JSON decision; stay silent.
 payload="$(cat -)"
 event="$(printf '%s' "$payload" | jq -r '.hook_event_name // ""' 2>/dev/null)"
 msg="$(printf '%s' "$payload" | jq -r '.message // ""' 2>/dev/null)"
@@ -118,13 +215,18 @@ msg="$(printf '%s' "$payload" | jq -r '.message // ""' 2>/dev/null)"
 # and route it through the focus-guarded path below (Notification is
 # already focus-suppressed by CC itself, so it stays clickable/precise).
 if [ -z "$msg" ]; then
-  [ "$event" = "Stop" ] && msg="✅ Claude 講完一輪了" || msg="Claude Code needs your attention"
+  case "$event" in
+    Stop) msg="✅ $AGENT 講完一輪了" ;;
+    PermissionRequest) msg="🔐 $AGENT needs your approval" ;;
+    *) msg="$AGENT needs your attention" ;;
+  esac
 fi
 
 icon="$ICON_PATH"
+[ "$AGENT" = "Claude" ] || icon="" # the sprite is Claude's
 [ -f "$icon" ] || icon="starred"
 
-title="Claude"
+title="$AGENT"
 saved_pane="${TMUX_PANE:-}"
 saved_sess=""
 term_pid=""
@@ -135,14 +237,18 @@ if [ -n "${TMUX:-}" ] && [ -n "$saved_pane" ]; then
   saved_sess="$(tmux display-message -p -t "$saved_pane" '#{session_name}' 2>/dev/null || true)"
   pane_loc="$(tmux display-message -p -t "$saved_pane" '#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null || true)"
   cwd_base="$(tmux display-message -p -t "$saved_pane" '#{b:pane_current_path}' 2>/dev/null || true)"
-  [ -n "$pane_loc" ] && title="Claude · $pane_loc"
+  [ -n "$pane_loc" ] && title="$AGENT · $pane_loc"
   [ -n "$cwd_base" ] && title="$title · $cwd_base"
   tmux display-message "🔔 $title: $msg" 2>/dev/null
   client_tty="$(tmux list-clients -t "$saved_sess" -F '#{client_tty}' 2>/dev/null | head -1)"
   [ -n "$client_tty" ] && term_pid="$(term_pid_from_tty "$client_tty" || true)"
 else
   cwd_base="$(basename "${PWD:-/}")"
-  [ -n "$term_app" ] && title="$title · $term_app"
+  if in_herdr; then
+    title="$title · herdr $HERDR_PANE_ID"
+  elif [ -n "$term_app" ]; then
+    title="$title · $term_app"
+  fi
   [ -n "$cwd_base" ] && [ "$cwd_base" != "/" ] && title="$title · $cwd_base"
   term_pid="$(term_pid_from_tty "$(tty 2>/dev/null)" || true)"
 fi
@@ -179,8 +285,12 @@ notify_linux() {
       -A 'default=Jump here' \
       "$title" "$msg" 2>/dev/null)"
     if [ "$action" = "default" ]; then
-      tmux_restore "$saved_sess" "$saved_pane"
-      [ -n "$term_pid" ] && raise_pid_kwin "$term_pid"
+      if in_herdr; then
+        herdr_jump
+      else
+        tmux_restore "$saved_sess" "$saved_pane"
+        [ -n "$term_pid" ] && raise_pid_kwin "$term_pid"
+      fi
     fi
   ) >/dev/null 2>&1 </dev/null &
   disown 2>/dev/null || true
@@ -199,23 +309,17 @@ notify_linux() {
 # precise pane — that needs the shell-side notify-send -A path which
 # can't be focus-guarded).
 notify_linux_guarded() {
-  # viewing=1 → saved_pane is the pane currently on screen. Default 1 when
-  # not in tmux, so the guard degrades to plain window-level focus.
-  local viewing=1
-  if [ -n "$saved_pane" ]; then
-    viewing=0
-    local v
-    v="$(tmux display-message -p -t "$saved_pane" '#{?pane_active,1,0}#{?window_active,1,0}#{?session_attached,1,0}' 2>/dev/null)"
-    [ "$v" = "111" ] && viewing=1
-  fi
-  local gicon="$icon" entry="${CC_NOTIFY_DESKTOP_ENTRY:-Alacritty}"
+  local viewing view_term_pids
+  compute_viewing
+  local gicon="$icon" term_pids_js="${view_term_pids// /, }" entry="${CC_NOTIFY_DESKTOP_ENTRY:-Alacritty}"
   # JSON-encode every interpolated value: this KWin script runs in a
   # privileged context (callDBus to any service), so a value containing a
   # double-quote or JS (e.g. a crafted cwd basename in $title) could break
   # out of the string literal and inject code. `jq -Rs .` emits a safe,
   # fully-escaped JSON string literal (also valid JS); embed it WITHOUT
   # surrounding quotes since jq supplies them.
-  local gicon_j title_j msg_j entry_j
+  local gicon_j title_j msg_j entry_j app_j
+  app_j="$(printf '%s' "$AGENT" | jq -Rs .)"
   gicon_j="$(printf '%s' "$gicon" | jq -Rs .)"
   title_j="$(printf '%s' "$title" | jq -Rs .)"
   msg_j="$(printf '%s' "$msg" | jq -Rs .)"
@@ -225,11 +329,15 @@ const w = workspace.activeWindow || workspace.activeClient;
 const cls = w ? (w.resourceClass || "") : "";
 const focusedAla = /alacritty/i.test(cls);
 const viewing = $viewing;
-// Quiet only when you're focused on Alacritty AND it's showing the CC pane.
-if (!(focusedAla && viewing)) {
+const termPids = [$term_pids_js];
+// When the agent's terminal windows are known (herdr), "focused on a
+// terminal" has to mean one of THOSE windows, not just any Alacritty.
+const onAgentTerm = termPids.length === 0 || (w && termPids.includes(w.pid));
+// Quiet only when you're focused on Alacritty AND it's showing the agent's pane.
+if (!(focusedAla && viewing && onAgentTerm)) {
   callDBus("org.freedesktop.Notifications", "/org/freedesktop/Notifications",
     "org.freedesktop.Notifications", "Notify",
-    "Claude Code", 0, $gicon_j,
+    $app_j, 0, $gicon_j,
     $title_j, $msg_j,
     ["default", "Jump"], {"desktop-entry": $entry_j}, 8000);
 }
@@ -261,13 +369,8 @@ notify_macos() {
 # only when BOTH hold; otherwise toast (still clickable). viewing
 # defaults to 1 when not in tmux, degrading to plain window-level focus.
 notify_macos_guarded() {
-  local viewing=1
-  if [ -n "$saved_pane" ]; then
-    viewing=0
-    local v
-    v="$(tmux display-message -p -t "$saved_pane" '#{?pane_active,1,0}#{?window_active,1,0}#{?session_attached,1,0}' 2>/dev/null)"
-    [ "$v" = "111" ] && viewing=1
-  fi
+  local viewing view_term_pids
+  compute_viewing
   local front; front="$(nlib_frontmost_app)"
   local focused_term=0
   case "$front" in
@@ -302,6 +405,37 @@ notify_ssh() {
   fi
   printf '\a' > "$tty" 2>/dev/null || true
 }
+
+# ════════════════ remote channel (optional) ════════════════
+# The one path that does not depend on a terminal being attached anywhere or
+# on this machine having a desktop: needed when the agent runs on a box you
+# only reach over SSH with herdr started by systemd, where no pane carries
+# SSH_TTY and BEL/OSC have nowhere to go. Slack-compatible incoming webhook
+# ({"text": ...}). The env file is parsed, never sourced.
+remote_wants_event() {
+  case " ${CC_NOTIFY_WEBHOOK_EVENTS:-Notification PermissionRequest} " in
+    *" $event "*) return 0 ;;
+  esac
+  return 1
+}
+
+notify_remote() {
+  local envf="${XDG_CONFIG_HOME:-$HOME/.config}/cc-notify/env" v
+  if [ -r "$envf" ]; then
+    v="$(sed -n 's/^CC_NOTIFY_WEBHOOK_URL=//p' "$envf" | tail -n 1)"
+    [ -n "$v" ] && CC_NOTIFY_WEBHOOK_URL="${v%\"}" && CC_NOTIFY_WEBHOOK_URL="${CC_NOTIFY_WEBHOOK_URL#\"}"
+    v="$(sed -n 's/^CC_NOTIFY_WEBHOOK_EVENTS=//p' "$envf" | tail -n 1)"
+    [ -n "$v" ] && CC_NOTIFY_WEBHOOK_EVENTS="${v%\"}" && CC_NOTIFY_WEBHOOK_EVENTS="${CC_NOTIFY_WEBHOOK_EVENTS#\"}"
+  fi
+  [ -n "${CC_NOTIFY_WEBHOOK_URL:-}" ] || return 0
+  remote_wants_event || return 0
+  command -v curl >/dev/null 2>&1 || return 0
+  local body
+  body="$(jq -n --arg t "[$(hostname -s 2>/dev/null || echo host)] $title — $msg" '{text: $t}')" || return 0
+  (curl -fsS -m 10 -X POST -H 'Content-Type: application/json' -d "$body" \
+    "$CC_NOTIFY_WEBHOOK_URL" >/dev/null 2>&1 &)
+}
+notify_remote
 
 if is_ssh; then
   # SSH Stop is focus-guarded downstream: the BEL reaches the local
