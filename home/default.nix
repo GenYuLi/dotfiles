@@ -306,6 +306,8 @@ in
     "nvim".source = symlinkDotfiles "config/nvim";
     "vim".source = symlinkDotfiles "config/vim";
     "navi".source = symlinkDotfiles "config/navi";
+    # Per-file, not the whole dir: ~/.config/herdr also holds herdr.sock and logs.
+    "herdr/config.toml".source = symlinkDotfiles "config/herdr/config.toml";
     "newsboat/config".source = symlinkDotfiles "config/newsboat/config";
     "zsh/autoload/fuzzy-job.zsh".source = symlinkDotfiles "config/zsh/autoload/fuzzy-job.zsh";
     "newsboat/themes/catppuccin".source = "${config.catppuccin.sources.newsboat}/dark";
