@@ -247,18 +247,24 @@ in
       # atomically on every switch. Idempotent: no-op once no store path remains.
       # GSD self-update (/gsd:update) re-bakes the path; the next switch fixes it
       # again before GC can bite.
+      # The Codex install of GSD does the same to ~/.codex/hooks.json.
       fixGsdNodePath = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        settings="${config.home.homeDirectory}/.claude/settings.json"
         stable="${config.home.profileDirectory}/bin/node"
         pattern='/nix/store/[a-z0-9]{32}-nodejs[^/"]*/bin/node'
-        if [ -f "$settings" ] && ${pkgs.gnugrep}/bin/grep -Eq "$pattern" "$settings"; then
-          if [ -x "$stable" ]; then
-            run ${pkgs.gnused}/bin/sed -i -E "s#$pattern#$stable#g" "$settings"
-            echo "fixGsdNodePath: rewrote GSD node path -> $stable"
-          else
-            echo "WARN: fixGsdNodePath: $stable missing (nodejs not in home.packages?); left settings.json untouched" >&2
+        # Same installer, same bug, one file per agent runtime: Claude Code keeps
+        # its hooks in settings.json, Codex in hooks.json.
+        for target in \
+          "${config.home.homeDirectory}/.claude/settings.json" \
+          "${config.home.homeDirectory}/.codex/hooks.json"; do
+          if [ -f "$target" ] && ${pkgs.gnugrep}/bin/grep -Eq "$pattern" "$target"; then
+            if [ -x "$stable" ]; then
+              run ${pkgs.gnused}/bin/sed -i -E "s#$pattern#$stable#g" "$target"
+              echo "fixGsdNodePath: rewrote GSD node path in $target -> $stable"
+            else
+              echo "WARN: fixGsdNodePath: $stable missing (nodejs not in home.packages?); left $target untouched" >&2
+            fi
           fi
-        fi
+        done
       '';
 
       # herdr (agent multiplexer) is deliberately NOT a Nix package: upstream
