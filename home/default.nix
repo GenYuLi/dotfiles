@@ -23,6 +23,7 @@ in
     ./ghostty.nix
     ./desktop.nix
     ./herdr-pwa.nix
+    ./codex.nix
     ./cpp.nix
     ./nixd.nix
     inputs.nix-index-database.homeModules.nix-index

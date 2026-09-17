@@ -27,6 +27,7 @@ nix flake check                                 # runs pre-commit checks: editor
 
 # Claude Code plugins (new machine, after first `claude` login)
 ./.claude/sync-plugins.sh                       # installs the user-scope plugin set (superpowers, mattpocock-skills, LSPs, ...)
+./.codex/sync-plugins.sh                        # Codex counterpart (MCP, GSD, herdr hook); no-op without codex. `dotswitch` runs both
 ```
 
 ## Architecture

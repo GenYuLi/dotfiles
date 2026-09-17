@@ -120,6 +120,8 @@ let
       else
         echo "dotswitch: claude not on PATH; skipped .claude/sync-plugins.sh" >&2
       fi
+      # Codex is optional; its counterpart script is silent when it is absent.
+      ${dotDir}/.codex/sync-plugins.sh
     }
 
     # other settings
