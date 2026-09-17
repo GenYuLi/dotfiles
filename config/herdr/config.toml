@@ -3,6 +3,10 @@
 # you want to keep them). Full reference: `herdr --default-config`.
 # Validate after editing: `herdr config check`; apply: `herdr server reload-config`.
 
+# Choices made in herdr's first-run wizard (2026-09-17). Kept here because herdr
+# wrote them to a plain ~/.config/herdr/config.toml before the symlink existed.
+onboarding = false
+
 [theme]
 # herdr ships `gruvbox` but not sainnhe's gruvbox-material, so start from gruvbox
 # and repaint it with the same variant nvim uses (background=hard,
@@ -29,3 +33,9 @@ blue = "#7daea3"
 # layout and spend 26 of those columns on the sidebar. 80 keeps every phone font
 # size in mobile layout while a normal desktop terminal stays on the desktop one.
 mobile_width_threshold = 80
+# From the first-run wizard: distinct glyphs per agent state instead of dots.
+status_indicators = "symbols"
+
+# From the first-run wizard: deliver toasts inside herdr.
+[ui.toast]
+delivery = "herdr"
