@@ -17,6 +17,10 @@ in
     settings = {
       experimental-features = [ "nix-command" "flakes" ];
       warn-dirty = false;
+      # Apply a flake's nixConfig (this repo's cachix substituters) without the
+      # per-run prompt / "Using saved setting" notice. Trade-off: any flake you
+      # run can add substituters, since this user is trusted by the daemon.
+      accept-flake-config = true;
       max-jobs = "auto";
       use-xdg-base-directories = true;
       auto-optimise-store = !pkgs.stdenv.isDarwin;
