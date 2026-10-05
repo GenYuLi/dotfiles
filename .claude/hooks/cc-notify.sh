@@ -8,7 +8,8 @@
 #   Linux/KDE : notify-send -A  +  KWin scripting raise-by-PID      [tested]
 #   macOS     : terminal-notifier -execute + System Events raise    [tested]
 #
-# Wired in ~/.claude/settings.json under hooks.Notification and hooks.Stop.
+# Wired in ~/.claude/settings.json under hooks.Notification and hooks.Stop
+# (registered by .claude/sync-plugins.sh).
 # Codex reuses it as `cc-notify.sh --agent codex` for its Stop and
 # PermissionRequest hooks (registered by .codex/sync-plugins.sh); Codex parses a
 # hook's stdout as a decision, so this script never writes to stdout.

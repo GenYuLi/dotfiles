@@ -55,6 +55,27 @@ for entry in "${THIRD_PARTY[@]}"; do
   claude plugin install "$id" --scope user
 done
 
+# Desktop/remote notifications: cc-notify.sh on Notification ("needs you") and
+# Stop ("turn finished"). settings.json is Claude Code's own file (GSD writes
+# hooks there too), so entries are merged in with jq rather than templated.
+# The Slack webhook URL is per machine: ~/.config/cc-notify/env, see cc-notify.sh.
+NOTIFY_HOOK="$HOME/.claude/hooks/cc-notify.sh"
+SETTINGS_JSON="$HOME/.claude/settings.json"
+if [[ -e "$NOTIFY_HOOK" ]] && command -v jq >/dev/null 2>&1; then
+  [[ -s "$SETTINGS_JSON" ]] || echo '{}' >"$SETTINGS_JSON"
+  for ev in Notification Stop; do
+    if jq -e --arg ev "$ev" '[.hooks[$ev][]?.hooks[]?.command // empty] | any(test("cc-notify\\.sh"))' "$SETTINGS_JSON" >/dev/null 2>&1; then
+      echo "skip: $ev notify hook (already registered)"
+    else
+      tmp="$(mktemp)"
+      jq --arg ev "$ev" --arg cmd "bash \"$NOTIFY_HOOK\"" \
+        '.hooks[$ev] = ((.hooks[$ev] // []) + [{hooks: [{type: "command", command: $cmd, timeout: 10}]}])' \
+        "$SETTINGS_JSON" >"$tmp" && mv "$tmp" "$SETTINGS_JSON"
+      echo "added: $ev notify hook"
+    fi
+  done
+fi
+
 # GSD (get-shit-done) is npm-based, not a marketplace plugin. Its files are
 # deliberately gitignored (.claude/{skills,agents,hooks}/gsd-*) because the
 # installer owns them and self-updates via its SessionStart hook / `/gsd:update`.
