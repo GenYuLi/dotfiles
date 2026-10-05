@@ -30,10 +30,13 @@ for p in "${PLUGINS[@]}"; do
   fi
 done
 
-# Third-party marketplaces: "<plugin>@<marketplace> <github-repo>".
-# Each marketplace is added on demand (idempotent) before installing.
+# Third-party marketplaces: "<plugin>@<marketplace> <owner/repo or git URL>".
+# Each marketplace is added on demand (idempotent) before installing. A failed
+# add (e.g. a private repo before the GitHub SSH key exists) only skips that
+# plugin; rerun this script once access works.
 THIRD_PARTY=(
   "ponytail@ponytail DietrichGebert/ponytail"  # lazy-senior-dev mode: YAGNI / stdlib-first / least code; needs node on PATH
+  "withers-core@withers-skills git@github.com:GenYuLi/skills.git"  # own skills (private, needs GitHub SSH): visual-explainer, arch-analysis, /standup ...
 )
 
 for entry in "${THIRD_PARTY[@]}"; do
@@ -44,7 +47,10 @@ for entry in "${THIRD_PARTY[@]}"; do
     continue
   fi
   if ! claude plugin marketplace list 2>/dev/null | grep -qE "^[[:space:]]*❯ $mk\$"; then
-    claude plugin marketplace add "$repo"
+    if ! claude plugin marketplace add "$repo"; then
+      echo "WARN: could not add marketplace $mk ($repo); skipped $id" >&2
+      continue
+    fi
   fi
   claude plugin install "$id" --scope user
 done
