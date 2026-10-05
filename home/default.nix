@@ -316,7 +316,6 @@ in
 
   home.file."tools".source = symlinkDotfiles "config/tools";
   home.file.".claude/CLAUDE.md".source = symlinkDotfiles ".claude/CLAUDE.md";
-  home.file.".claude/commands".source = symlinkDotfiles ".claude/commands";
   home.file.".claude/skills".source = symlinkDotfiles ".claude/skills";
   home.file.".claude/agents".source = symlinkDotfiles ".claude/agents";
   home.file.".claude/hooks/cc-notify.sh".source = symlinkDotfiles ".claude/hooks/cc-notify.sh";
