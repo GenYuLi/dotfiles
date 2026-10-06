@@ -12,7 +12,16 @@
     "synology-workflows@synology-dev-kit": true,
     "synology-package-dev@pct2-claude-code-marketplace": true,
     "context7@claude-plugins-official": true,
-    "github@claude-plugins-official": true
+    "github@claude-plugins-official": true,
+    "withers-core@withers-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "withers-skills": {
+      "source": {
+        "source": "git",
+        "url": "git@github.com:GenYuLi/skills.git"
+      }
+    }
   },
   "effortLevel": "high",
   "tui": "fullscreen"
