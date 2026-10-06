@@ -16,5 +16,9 @@ config/navi/navi.log
 .claude/.gsd-profile
 .claude/gsd-migration-journal/
 
+# Claude Code's per-account synced skills (<orgUuid>_<accountUuid>); lands here
+# because ~/.claude/skills is symlinked into this repo.
+.claude/skills/synced/
+
 # tpm-managed plugins (cloned at runtime; the pinned ones are tracked as gitlinks)
 config/tmux/plugins/
