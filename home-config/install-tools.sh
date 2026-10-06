@@ -109,6 +109,8 @@ else
   tmux -L "$sock" -f "$HOME/.config/tmux/tmux.conf" new-session -d
   tmux -L "$sock" run-shell "$PLUGINS/tpm/bin/install_plugins" | sed 's/^/  /'
   tmux -L "$sock" kill-server
+  # kill-server leaves the socket file behind; remove it.
+  rm -f "${TMUX_TMPDIR:-/tmp}/tmux-$(id -u)/$sock"
 
   # tmux-fingers 2.x needs a binary; its wizard fetches it via the GitHub API,
   # which is often rate-limited on shared IPs. Download the release directly.
@@ -130,11 +132,18 @@ if [[ ! -e "$HOME/.config/nvim/init.lua" ]]; then
 else
   # tree-sitter must be on PATH for nvim-treesitter to compile parsers.
   export PATH="$BIN:$PATH"
-  "$BIN/nvim" --headless "+Lazy! restore" +qa >/dev/null 2>&1
+  # Run from a scheduled callback and quit with qa!: in an established setup
+  # plain `-c qa` / `+qa` never returns (likely trigger: the startup
+  # "buf_get_clients() is deprecated" message from an old pinned plugin).
+  "$BIN/nvim" --headless -c 'lua vim.schedule(function()
+    vim.cmd("Lazy! restore")
+    vim.cmd("qa!")
+  end)' >/dev/null 2>&1
   echo "  ok  plugins restored"
   # mason installs ensure_installed asynchronously; quitting early aborts it
   # and leaves half-installed packages that is_installed() reports as done.
-  "$BIN/nvim" --headless -c 'Lazy! load mason.nvim' -c 'lua
+  "$BIN/nvim" --headless -c 'lua vim.schedule(function()
+    vim.cmd("Lazy! load mason.nvim")
     local spec = require("lazy.core.config").plugins["mason.nvim"]
     local want = require("lazy.core.plugin").values(spec, "opts", false).ensure_installed or {}
     local r = require("mason-registry")
@@ -145,7 +154,9 @@ else
       end
       return true
     end, 2000)
-    io.stdout:write(("  %s  mason: %d tools\n"):format(ok and "ok" or "TIMEOUT", #want))' -c qa 2>/dev/null
+    io.stdout:write(("  %s  mason: %d tools\n"):format(ok and "ok" or "TIMEOUT", #want))
+    vim.cmd("qa!")
+  end)' 2>/dev/null
 fi
 
 echo ""

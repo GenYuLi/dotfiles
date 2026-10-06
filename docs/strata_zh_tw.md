@@ -55,7 +55,7 @@ nvim --headless -c 'lua vim.defer_fn(function() vim.cmd("qa!") end, 3000)'; echo
 ls ~/.local/share/nvim/mason/bin | wc -l          # 14（13 個工具，pyright 有兩個執行檔）
 ```
 
-不要用 `nvim --headless +qa` 驗證：啟動時 project.nvim / symbols-outline 印出 `buf_get_clients() is deprecated`，headless 下會停在 hit-enter 永遠不結束。互動使用不受影響。
+不要用 `nvim --headless +qa`（`-c qa`、`+qa!` 也一樣）驗證：已裝好 plugin 的環境下它永遠不會結束，要從排程的 callback 裡 `qa!` 才行。可能的原因是啟動時舊版 plugin 印出 `buf_get_clients() is deprecated`。互動使用不受影響。
 
 `git -C ~/dotfiles status` 會看到 `config/nvim/lazy-lock.json` 被改（lazy 補上 lockfile 沒收錄的 plugin）。**不要 commit**，見 CLAUDE.md。
 
