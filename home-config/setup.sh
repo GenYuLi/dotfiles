@@ -27,6 +27,10 @@ link "$HOME_CONFIG/.zshrc"  "$HOME/.zshrc"
 link "$HOME_CONFIG/.zshenv" "$HOME/.zshenv"
 link "$DOTFILES/config/zsh/.p10k.zsh" "$HOME/.p10k.zsh"
 
+echo "==> ssh"
+mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+link "$HOME_CONFIG/ssh-rc" "$HOME/.ssh/rc"
+
 echo "==> XDG config dirs"
 mkdir -p "$HOME/.config"
 link "$DOTFILES/config/zsh"  "$HOME/.config/zsh"
