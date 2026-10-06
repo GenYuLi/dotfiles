@@ -1,7 +1,10 @@
 % etched, lima, vm
 
-# 啟動 Lima VM 和 sw container
-limactl start sw && limactl shell sw -- nerdctl start sw
+# 啟動 Lima VM、sw container 和 container 裡的 sshd（ssh sw-dev 要用）
+limactl start sw && limactl shell sw -- nerdctl start sw && limactl shell sw -- nerdctl exec sw /usr/sbin/sshd
+
+# 只重新啟動 container 裡的 sshd（ssh sw-dev 連不上時）
+limactl shell sw -- nerdctl exec sw bash -c 'pkill -x sshd; /usr/sbin/sshd'
 
 # 停止 VM（釋放 14GB 記憶體，資料保留）
 limactl stop sw
@@ -9,7 +12,13 @@ limactl stop sw
 # VM 狀態
 limactl list
 
-# 進 container（含 ssh-agent 轉發，可以 git push/pull）
+# ssh 進 container 的 sw repo（agent forwarding，可以 git push/pull；nvim 在這裡用）
+ssh -t sw-dev 'cd /work/sw && exec bash -l'
+
+# VSCode Remote-SSH 開 container 裡的 sw repo
+code --remote ssh-remote+sw-dev /work/sw
+
+# 進 container（不經 ssh，含 ssh-agent 轉發）
 limactl shell sw -- bash -lc 'rm -f ~/work/.agent.sock; socat UNIX-LISTEN:$HOME/work/.agent.sock,fork,mode=777 UNIX-CONNECT:$SSH_AUTH_SOCK & nerdctl exec -it -u withers -w /work/sw -e SSH_AUTH_SOCK=/work/.agent.sock sw bash -l; kill %1; rm -f ~/work/.agent.sock'
 
 # 進 container（不需要 git 時）
@@ -73,5 +82,11 @@ uv run lint --rust --check
 
 # 連到 strata
 ssh <host>
+
+# 連到 strata 並直接進到 sw repo
+ssh -t <host> 'cd /project/sw/withers/sw && exec $SHELL -l'
+
+# VSCode Remote-SSH 開 strata 上的 sw repo
+code --remote ssh-remote+<host> /project/sw/withers/sw
 
 $ host: printf 'strata5\nstrata4\n'
