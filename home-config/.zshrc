@@ -127,6 +127,9 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 plugins=(git wd rust postgres fzf golang direnv)
 
 fpath=(/usr/share/zsh/site-functions $fpath)
+# Shared completions from the repo (bazel, uv, limactl, `uv run lint`, cargo);
+# the nix side adds the same directory in home/zsh.nix.
+fpath=("${DOTFILES_DIR:-$HOME/dotfiles}/config/zsh/completions" $fpath)
 autoload -Uz compinit
 compinit
 
