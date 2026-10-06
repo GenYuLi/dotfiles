@@ -15,3 +15,6 @@ config/navi/navi.log
 .claude/gsd-*.json
 .claude/.gsd-profile
 .claude/gsd-migration-journal/
+
+# tpm-managed plugins (cloned at runtime; the pinned ones are tracked as gitlinks)
+config/tmux/plugins/
