@@ -1,4 +1,9 @@
-{ pkgs, dotfiles, ... }:
+{
+  lib,
+  pkgs,
+  dotfiles,
+  ...
+}:
 let
   inherit (dotfiles) username;
 in
@@ -6,6 +11,10 @@ in
   environment.systemPackages = [
     # pkgs.xquartz
   ];
+
+  # https://github.com/nix-darwin/nix-darwin/issues/947
+  # 700 排在 ~/.nix-profile（800）之前、/etc/profiles/per-user（預設 1000）之前。
+  environment.profiles = lib.mkOrder 700 [ "$HOME/.local/state/nix/profile" ];
 
   users.users."${username}" = {
     description = dotfiles.fullname;
@@ -77,10 +86,10 @@ in
 
         AppleInterfaceStyle = "Dark";
         NSAutomaticCapitalizationEnabled = false;
-        "com.apple.keyboard.fnState" = true;
         "com.apple.trackpad.scaling" = 2.8;
         "com.apple.mouse.tapBehavior" = 1;
       };
+      WindowManager.GloballyEnabled = true;
       controlcenter = {
         Bluetooth = true;
         # Weather = true;
@@ -92,8 +101,20 @@ in
         mru-spaces = false;
         scroll-to-open = true;
         persistent-others = [
-          "/Users/${username}/Documents"
-          "/Users/${username}/Downloads"
+          {
+            folder = {
+              path = "/Users/${username}/Documents";
+              arrangement = "date-modified";
+              showas = "fan";
+            };
+          }
+          {
+            folder = {
+              path = "/Users/${username}/Downloads";
+              arrangement = "date-modified";
+              showas = "fan";
+            };
+          }
         ];
       };
       trackpad = {

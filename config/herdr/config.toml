@@ -1,0 +1,43 @@
+# Seed for ~/.config/herdr/config.toml. home-manager copies this ONCE, when that
+# file does not exist yet (home.activation.seedHerdrConfig); after that herdr
+# owns the live file and rewrites it from its wizard/settings UI. Editing this
+# file changes what new machines start with, not a machine already seeded.
+# Full reference: `herdr --default-config`. Validate: `herdr config check`.
+# Apply edits to the live file with: `herdr server reload-config`.
+
+# Choices made in herdr's first-run wizard (2026-09-17). Kept here because herdr
+# wrote them to a plain ~/.config/herdr/config.toml before the symlink existed.
+onboarding = false
+
+[theme]
+# herdr ships `gruvbox` but not sainnhe's gruvbox-material, so start from gruvbox
+# and repaint it with the same variant nvim uses (background=hard,
+# foreground=material — see config/nvim/lua/plugins/gruvbox.lua) and the tmux
+# status bar already hardcodes.
+name = "gruvbox"
+
+[theme.custom]
+sidebar_bg = "#141617"    # bg_dim  (hard)
+panel_bg = "#1d2021"      # bg0     (hard)
+active_row_bg = "#282828" # bg1
+selection_bg = "#3c3836"  # bg3
+accent = "#7daea3"        # blue — same role as the tmux NORMAL-mode segment
+text = "#d4be98"          # fg0
+red = "#ea6962"
+green = "#a9b665"
+yellow = "#d8a657"
+blue = "#7daea3"
+
+[ui]
+# herdr switches to its single-column mobile layout at or below this many
+# columns (default 64). The phone PWA is ~51 cols at its default 13px font, but
+# pinching down to 9px gives ~74 cols, which would flip herdr back to the desktop
+# layout and spend 26 of those columns on the sidebar. 80 keeps every phone font
+# size in mobile layout while a normal desktop terminal stays on the desktop one.
+mobile_width_threshold = 80
+# From the first-run wizard: distinct glyphs per agent state instead of dots.
+status_indicators = "symbols"
+
+# From the first-run wizard: deliver toasts inside herdr.
+[ui.toast]
+delivery = "herdr"

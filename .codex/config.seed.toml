@@ -1,0 +1,13 @@
+# Keys home-manager guarantees in ~/.codex/config.toml (home/codex.nix). Codex
+# owns the live file and creates it on first login, so this is merged in, never
+# symlinked: a missing file is created from this one, and an existing file gets
+# this block prepended once if the first key below is absent.
+#
+# Top-level keys ONLY. The block is prepended, and in TOML a bare key placed
+# after a [table] header would land inside that table.
+#
+# Not named config.toml on purpose: Codex reads <repo>/.codex/config.toml as
+# project-level config whenever it runs inside this repository.
+
+# Repos that only ship a CLAUDE.md still get project instructions.
+project_doc_fallback_filenames = ["CLAUDE.md"]

@@ -9,6 +9,10 @@ in
     gcc
     gnumake
     ninja
+    # clangd/clang-format from a current LLVM (clang 19+): Apple's clangd 16
+    # can't parse C++23 deducing-this ("this auto&& self"). On PATH before
+    # /usr/bin, so `clangd`/`clang-format` resolve here.
+    clang-tools
   ] ++ (pkgs.lib.optionals pkgs.stdenv.isLinux [
     gdb
     mold

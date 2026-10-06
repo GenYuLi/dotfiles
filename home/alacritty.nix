@@ -12,6 +12,19 @@ let
           --add-flags "$bin"
       done
     '';
+
+  # Ctrl+Shift+O: peek through the terminal at 0.6 opacity, press again to restore.
+  # Binding commands inherit Alacritty's process env, which has ALACRITTY_SOCKET
+  # but no ALACRITTY_WINDOW_ID, so this toggles every window (-w -1). The first
+  # IPC write after a while sometimes fails with EPIPE, hence the single retry.
+  toggleOpacity = pkgs.writeShellScript "alacritty-toggle-opacity" ''
+    msg() { ${pkgs.alacritty}/bin/alacritty msg "$@" || ${pkgs.alacritty}/bin/alacritty msg "$@"; }
+    if msg get-config -w -1 | ${pkgs.jq}/bin/jq -e '.window.opacity == 0.6' >/dev/null; then
+      msg config -w -1 --reset
+    else
+      msg config -w -1 'window.opacity=0.6'
+    fi
+  '';
 in
 {
   # gruvbox-material for the terminal (matches nvim + tmux). The global
@@ -106,6 +119,7 @@ in
           { key = "Tab"; mods = "Control"; chars = "\\u001B)"; }
           { key = "Tab"; mods = "Control|Shift"; chars = "\\u001B("; }
           { key = "P"; mods = "Control|Shift"; chars = "\\u0002\\u001BOS"; } # C-b f4
+          { key = "O"; mods = "Control|Shift"; command = { program = "${toggleOpacity}"; }; }
         ];
       };
     };

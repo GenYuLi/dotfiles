@@ -16,8 +16,9 @@ config/navi/navi.log
 .claude/.gsd-profile
 .claude/gsd-migration-journal/
 
-# Claude Code's per-account synced skills (<orgUuid>_<accountUuid>); lands here
-# because ~/.claude/skills is symlinked into this repo.
+# Skills Claude Code syncs down from the claude.ai account. They land here only
+# because ~/.claude/skills is an out-of-store symlink into this tree. Not ours to
+# version, and the bucket directory names carry account/org identifiers.
 .claude/skills/synced/
 
 # tpm-managed plugins (cloned at runtime; the pinned ones are tracked as gitlinks)

@@ -1,4 +1,11 @@
-{ lib, pkgs, config, dotfiles, isSystemConfig, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  dotfiles,
+  isSystemConfig,
+  ...
+}:
 let
   dotDir = "${dotfiles.directory}";
   aliases = {
@@ -22,16 +29,12 @@ let
     cpcmd = "fc -ln -1 | awk '{$1=$1}1' | tee /dev/fd/2 | yank";
     gdbrun = "gdb -ex=run --args";
 
-    dotswitch =
-      let
-        cmd = (
-          if isSystemConfig then
-            (if pkgs.stdenv.isLinux then "sudo nixos-rebuild" else "darwin-rebuild")
-          else
-            "home-manager"
-        );
-      in
-      "${cmd} switch --flake ${dotDir} --show-trace";
+    # Bypass flaky cachix: drop williamhsieh from substituters. NOTE: only
+    # fully effective if the flake's nixConfig is NOT trusted (answer 'n' to
+    # the flake-config prompt, or set its entries to false in
+    # ~/.local/share/nix/trusted-settings.json); a trusted flake nixConfig
+    # re-appends williamhsieh AFTER command-line flags (verified on nix 2.34).
+    dotswitch-nocachix = "dotswitch --option substituters 'https://cache.nixos.org https://nix-community.cachix.org'";
   };
 
   initExtraFirst =
@@ -40,8 +43,7 @@ let
       nixProfile = "${config.home.profileDirectory}/etc/profile.d/nix.sh";
       sourceIfExists = file: "[[ -r ${file} ]] && source ${file}";
     in
-    lib.mkBefore
-      /* bash */ ''
+    lib.mkBefore /* bash */ ''
       # p10k instant prompt
       echo ""
       ${sourceIfExists "${instantPrompt}"}
@@ -52,6 +54,8 @@ let
     '';
 
   initExtraBeforeCompInit = lib.mkOrder 550 /* bash */ ''
+    # prepend: must win over rustup's _cargo shim in the nix profile
+    fpath=(${dotDir}/config/zsh/completions $fpath)
     fpath+=${pkgs.zsh-completions}/share/zsh/site-functions
     fpath+=${pkgs.oh-my-zsh}/share/oh-my-zsh/plugins/extract
     fpath+=${dotDir}/config/zsh/autoload
@@ -100,6 +104,26 @@ let
       export XMODIFIERS=@im=fcitx
     fi
 
+    # dotswitch: rebuild + switch, then sync Claude Code plugins. A function,
+    # not an alias, so extra args (see dotswitch-nocachix) reach the switch
+    # command instead of the sync script. sync-plugins.sh is idempotent and
+    # only shells out to `claude` for plugins not yet recorded as installed.
+    dotswitch() {
+      ${
+        if isSystemConfig then
+          (if pkgs.stdenv.isLinux then "sudo nixos-rebuild" else "darwin-rebuild")
+        else
+          "home-manager"
+      } switch --flake ${dotDir} --show-trace "$@" || return $?
+      if command -v claude &>/dev/null; then
+        ${dotDir}/.claude/sync-plugins.sh
+      else
+        echo "dotswitch: claude not on PATH; skipped .claude/sync-plugins.sh" >&2
+      fi
+      # Codex is optional; its counterpart script is silent when it is absent.
+      ${dotDir}/.codex/sync-plugins.sh
+    }
+
     # other settings
     source ${dotDir}/config/zsh/.zshrc
   '';
@@ -129,7 +153,11 @@ in
     autocd = true;
     defaultKeymap = "emacs";
     dotDir = "${config.xdg.configHome}/zsh";
-    initContent = lib.mkMerge [ initExtraFirst initExtraBeforeCompInit initExtra ];
+    initContent = lib.mkMerge [
+      initExtraFirst
+      initExtraBeforeCompInit
+      initExtra
+    ];
 
     # TODO: change to -i?
     completionInit = "autoload -Uz compinit && compinit -u";

@@ -1,4 +1,11 @@
-{ inputs, pkgs, config, lib, dotfiles, ... }:
+{
+  inputs,
+  pkgs,
+  config,
+  lib,
+  dotfiles,
+  ...
+}:
 let
   symlinkDotfiles = path: config.lib.file.mkOutOfStoreSymlink "${dotfiles.directory}/${path}";
 
@@ -15,11 +22,14 @@ in
     ./alacritty.nix
     ./ghostty.nix
     ./desktop.nix
+    ./herdr-pwa.nix
+    ./codex.nix
     ./cpp.nix
     ./nixd.nix
     inputs.nix-index-database.homeModules.nix-index
     inputs.catppuccin.homeModules.catppuccin
-  ] ++ (lib.optionals (dotfiles.profile == "nixos") [
+  ]
+  ++ (lib.optionals (dotfiles.profile == "nixos") [
     ../system/nixos/home.nix
   ]);
 
@@ -30,115 +40,147 @@ in
 
     inherit (dotfiles) username;
 
-    homeDirectory = with pkgs.stdenv;
+    homeDirectory =
+      with pkgs.stdenv;
       if isDarwin then
         "/Users/${dotfiles.username}"
       else if "${dotfiles.username}" == "root" then
         "/root"
       else if isLinux then
         "/home/${dotfiles.username}"
-      else "";
+      else
+        "";
 
-    packages = with pkgs; [
-      # manage itself
-      nix
+    packages =
+      with pkgs;
+      [
+        # manage itself
+        nix
 
-      # lib
-      zlib
-      iconv
-      openssl
-      pkg-config
+        # lib
+        zlib
+        iconv
+        openssl
+        pkg-config
 
-      # basic tools
-      coreutils-full
-      util-linux
-      xdg-utils
-      gnugrep
-      file
-      findutils
-      gawk
-      less
-      procps
-      wget
-      curl
-      gzip # for zcat
+        # basic tools
+        coreutils-full
+        util-linux
+        xdg-utils
+        gnugrep
+        file
+        findutils
+        gawk
+        less
+        procps
+        wget
+        curl
+        gzip # for zcat
 
-      # useful tools
-      fd
-      ripgrep
-      comma
-      tldr
-      dua
-      just
-      mprocs
+        # useful tools
+        fd
+        ripgrep
+        comma
+        tldr
+        dua
+        just
+        mprocs
 
-      # images
-      viu
-      # super fast
-      feh
+        # images
+        viu
+        # super fast
+        feh
 
-      # editor
-      unstable.neovim
-      unstable.tree-sitter
-      unzip
-      nodejs
+        # editor
+        unstable.neovim
+        unstable.tree-sitter
+        unzip
+        nodejs
 
-      # shell
-      eza
-      trash-cli
-      bashInteractive
+        # shell
+        eza
+        trash-cli
+        bashInteractive
 
-      # audio
-      # yt-dlp # temporarily disabled: curl-cffi build failure in nixpkgs
-      ffmpeg
+        # audio
+        # yt-dlp # temporarily disabled: curl-cffi build failure in nixpkgs
+        ffmpeg
 
-      # parser
-      jc
-      jq
-      jqp
-      sq
-      lnav # log viewer
+        # parser
+        jc
+        jq
+        jqp
+        sq
+        lnav # log viewer
 
-      # language specific
-      rustup
-      go
-      bun
-      uv
-      poetry
-      python313
-      nixpkgs-fmt
-      nixfmt
-      unstable.nixd
+        # language specific
+        rustup
+        go
+        bun
+        uv
+        poetry
+        python313
+        nixpkgs-fmt
+        nixfmt
+        unstable.nixd
 
-      # network
-      httpie
-      socat
+        # network
+        httpie
+        socat
 
-      # fun
-      sl
-      smassh
+        # fun
+        sl
+        smassh
 
-      # pretty stuff
-      csvlens
-      litecli
-      nix-tree
+        # pretty stuff
+        csvlens
+        litecli
+        nix-tree
 
-      navi
-      newsboat
+        navi
+        newsboat
 
-      # misc
-      nix-search-cli
-      hello-unfree #test unfree packages
-      nurl #generate nix fetcher call from repo
-      cloc
-    ] ++ (pkgs.lib.optionals pkgs.stdenv.isLinux [
-      qimgv # export QT_XCB_GL_INTEGRATION=none
-      netcat-openbsd # only the bsd version support `-k`
-    ]) ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin [
-      terminal-notifier # clickable Claude Code desktop notifications
-    ]);
+        # misc
+        nix-search-cli
+        hello-unfree # test unfree packages
+        nurl # generate nix fetcher call from repo
+        cloc
+      ]
+      ++ (pkgs.lib.optionals pkgs.stdenv.isLinux [
+        qimgv # export QT_XCB_GL_INTEGRATION=none
+        netcat-openbsd # only the bsd version support `-k`
+      ])
+      ++ (pkgs.lib.optionals pkgs.stdenv.isDarwin [
+        # clickable Claude Code desktop notifications. nixpkgs still ships
+        # 2.0.0 (2017, x86_64-only -> Rosetta on Apple silicon); 3.x is a
+        # universal binary rebuilt on UserNotifications. Drop the override
+        # once nixpkgs catches up.
+        (terminal-notifier.overrideAttrs (_: rec {
+          version = "3.1.0";
+          # stdenv's darwin fixup re-signs the Mach-O with a linker-style
+          # ad-hoc signature (Identifier=terminal-notifier, Info.plist not
+          # bound). UserNotifications then refuses authorization with
+          # "UNErrorDomain error 1" (julienXX/terminal-notifier#328). Keep
+          # upstream's sealed bundle signature instead; nothing else in
+          # fixup matters for a prebuilt .app.
+          dontFixup = true;
+          src = pkgs.fetchzip {
+            url = "https://github.com/julienXX/terminal-notifier/releases/download/${version}/terminal-notifier-${version}.zip";
+            hash = "sha256-WbkwxlOsR445RBez7oK4LURs4MifO1vK7b3m1MGxq90=";
+            stripRoot = false;
+          };
+        }))
+      ]);
 
+    # hm-session-vars.sh is the only PATH setup a non-login, non-interactive
+    # SSH shell gets (mobile SSH clients probe for tmux/herdr that way), and it
+    # only prepends this list — the profile bin dir itself is normally added by
+    # /etc/profile.d/nix.sh, which login shells alone read. Without it such a
+    # shell falls back to the distro tmux client against the Nix tmux server.
+    # ~/.local/bin is where the herdr installer lands.
     sessionPath = [
+      "${config.home.profileDirectory}/bin"
+      "$HOME/.local/bin"
       "$HOME/.uv/bin"
     ];
 
@@ -196,6 +238,77 @@ in
       batCacheBuild = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
         PATH="${config.home.path}/bin:$PATH" run bat cache --build
       '';
+
+      # GSD (get-shit-done) installer bakes `process.execPath` — a
+      # /nix/store/<hash>-nodejs-*/bin/node path — into ~/.claude/settings.json
+      # hooks + statusLine. That hash changes on every nodejs bump and the old
+      # one gets GC'd, so every GSD hook dies with "No such file or directory".
+      # Rewrite it to the profile-level symlink, which home-manager re-points
+      # atomically on every switch. Idempotent: no-op once no store path remains.
+      # GSD self-update (/gsd:update) re-bakes the path; the next switch fixes it
+      # again before GC can bite.
+      # The Codex install of GSD does the same to ~/.codex/hooks.json.
+      fixGsdNodePath = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        stable="${config.home.profileDirectory}/bin/node"
+        pattern='/nix/store/[a-z0-9]{32}-nodejs[^/"]*/bin/node'
+        # Same installer, same bug, one file per agent runtime: Claude Code keeps
+        # its hooks in settings.json, Codex in hooks.json.
+        for target in \
+          "${config.home.homeDirectory}/.claude/settings.json" \
+          "${config.home.homeDirectory}/.codex/hooks.json"; do
+          if [ -f "$target" ] && ${pkgs.gnugrep}/bin/grep -Eq "$pattern" "$target"; then
+            if [ -x "$stable" ]; then
+              run ${pkgs.gnused}/bin/sed -i -E "s#$pattern#$stable#g" "$target"
+              echo "fixGsdNodePath: rewrote GSD node path in $target -> $stable"
+            else
+              echo "WARN: fixGsdNodePath: $stable missing (nodejs not in home.packages?); left $target untouched" >&2
+            fi
+          fi
+        done
+      '';
+
+      # herdr (agent multiplexer) is deliberately NOT a Nix package: upstream
+      # cuts a stable roughly every two weeks and ships its own `herdr update`,
+      # so pinning it in flake.lock would only add lag. Bootstrap the official
+      # installer into ~/.local/bin on the first switch; once the binary exists
+      # this is a no-op, so an offline switch never fails here and upgrades
+      # stay in herdr's hands.
+      # herdr owns ~/.config/herdr/config.toml: its first-run wizard and settings
+      # UI rewrite the file, which collides with a home-manager-managed symlink
+      # (the switch refuses to clobber it). So only seed it: copy the repo's
+      # starting point once, as a plain writable file, and never touch it again.
+      # Before reloadSystemd so herdr-server reads it on its very first start.
+      seedHerdrConfig = lib.hm.dag.entryBetween [ "reloadSystemd" ] [ "writeBoundary" ] ''
+        cfg="${config.xdg.configHome}/herdr/config.toml"
+        if [ ! -e "$cfg" ]; then
+          run install -Dm644 ${../config/herdr/config.toml} "$cfg"
+          echo "seedHerdrConfig: seeded $cfg (herdr owns it from here on)"
+        fi
+      '';
+
+      # Ordered before reloadSystemd so that on a fresh machine the binary is
+      # already there when sd-switch starts herdr-server (home/herdr-pwa.nix).
+      installHerdr = lib.hm.dag.entryBetween [ "reloadSystemd" ] [ "writeBoundary" ] ''
+        herdr="${config.home.homeDirectory}/.local/bin/herdr"
+        if [ ! -x "$herdr" ]; then
+          tmp="$(mktemp)"
+          if run ${pkgs.curl}/bin/curl -fsSL --retry 3 --connect-timeout 10 https://herdr.dev/install.sh -o "$tmp"; then
+            if PATH="${
+              lib.makeBinPath [
+                pkgs.curl
+                pkgs.gawk
+              ]
+            }:$PATH" run /bin/sh "$tmp"; then
+              echo "installHerdr: installed herdr -> $herdr"
+            else
+              echo "WARN: installHerdr: installer failed; retry with: curl -fsSL https://herdr.dev/install.sh | sh" >&2
+            fi
+          else
+            echo "WARN: installHerdr: could not fetch installer (offline?); skipped" >&2
+          fi
+          rm -f "$tmp"
+        fi
+      '';
     };
   };
 
@@ -203,7 +316,6 @@ in
 
   home.file."tools".source = symlinkDotfiles "config/tools";
   home.file.".claude/CLAUDE.md".source = symlinkDotfiles ".claude/CLAUDE.md";
-  home.file.".claude/commands".source = symlinkDotfiles ".claude/commands";
   home.file.".claude/skills".source = symlinkDotfiles ".claude/skills";
   home.file.".claude/agents".source = symlinkDotfiles ".claude/agents";
   home.file.".claude/hooks/cc-notify.sh".source = symlinkDotfiles ".claude/hooks/cc-notify.sh";
@@ -321,17 +433,25 @@ in
       highlight_base_name = 1;
       highlight_megabytes = 1;
       highlight_threads = 1;
-    } // (with config.lib.htop; leftMeters [
-      (bar "LeftCPUs2")
-      (bar "Memory")
-      (bar "Swap")
-    ]) // (with config.lib.htop; rightMeters [
-      (bar "RightCPUs2")
-      (text "Tasks")
-      (text "LoadAverage")
-      (text "DiskIO")
-      (text "Uptime")
-    ]);
+    }
+    // (
+      with config.lib.htop;
+      leftMeters [
+        (bar "LeftCPUs2")
+        (bar "Memory")
+        (bar "Swap")
+      ]
+    )
+    // (
+      with config.lib.htop;
+      rightMeters [
+        (bar "RightCPUs2")
+        (text "Tasks")
+        (text "LoadAverage")
+        (text "DiskIO")
+        (text "Uptime")
+      ]
+    );
   };
 
   programs.fuzzel = {
@@ -364,6 +484,9 @@ in
       options = "--delete-older-than 30d";
     };
   };
+
+  # Phone front-end for herdr; see home/herdr-pwa.nix for the manual steps.
+  programs.herdr-pwa.enable = pkgs.stdenv.isLinux && dotfiles.profile == "home";
 
   services.pueue = {
     enable = pkgs.stdenv.isLinux;
