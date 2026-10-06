@@ -1,0 +1,23 @@
+#compdef lint
+# Completion for `uv run lint` in etched-ai/sw (a Click CLI). `_uv` hands the
+# words after `uv run` to `_normal`, which lands here. Flags are parsed from
+# `lint --help` once per shell, so new lint types appear without editing this.
+
+if (( ! ${#_lint_specs} )); then
+  typeset -ga _lint_specs
+  local line flag neg value desc
+  for line in ${(f)"$(uv run --quiet lint --help 2>/dev/null)"}; do
+    # e.g. "  -c, --check / --no-check        Only check, without formatting"
+    #      "  --diff-base TEXT                Git ref to diff against ..."
+    [[ $line =~ '^  (-[a-zA-Z], )?(--[a-z0-9-]+)( / (--[a-z0-9-]+))?( [A-Z]+)?( {2,}(.*))?$' ]] || continue
+    flag=$match[2] neg=$match[4] value=$match[5] desc=${match[7]//[\[\]:]/}
+    if [[ -n $value ]]; then
+      _lint_specs+=("${flag}=[${desc}]:${value# }:")
+    else
+      _lint_specs+=("${flag}[${desc}]")
+      [[ -n $neg ]] && _lint_specs+=("${neg}[disable ${flag#--}]")
+    fi
+  done
+fi
+
+_arguments -s $_lint_specs '*:path:_files'
