@@ -35,17 +35,12 @@ For machines where nix is not available (e.g. VBM, remote servers), standalone c
 git clone http://github.com/williamhsieh/dotfiles -b no-nix
 cd dotfiles
 
-# symlink zsh config
-ln -sf $(pwd)/home-config/.zshrc ~/.zshrc
-ln -sf $(pwd)/home-config/.zshenv ~/.zshenv
-
-# symlink other configs (tmux, nvim, navi)
-ln -sf $(pwd)/config/tmux ~/.config/tmux
-ln -sf $(pwd)/config/nvim ~/.config/nvim
-ln -sf $(pwd)/config/navi ~/.config/navi
+./home-config/setup.sh          # symlink zsh/nvim/tmux/navi/claude configs (backs up existing files to *.bak)
+./home-config/install-tools.sh  # rootless: nvim, fzf, navi, sk, bat, direnv, zoxide, tree-sitter,
+                                # thefuck, zinit, oh-my-zsh, p10k, tmux plugins → ~/.local
 ```
 
-Prerequisites: `zsh`, `zinit`, `oh-my-zsh`, `powerlevel10k`, `fzf`, `navi`, `thefuck`
+Both scripts are idempotent. `install-tools.sh` targets Linux x86_64 (tested on RHEL 9 / glibc 2.34) and needs `zsh`, `tmux`, `git`, `curl`, `python3`; nvim plugins and LSP servers install on first launch.
 
 ## Feedback
 
