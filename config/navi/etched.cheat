@@ -12,8 +12,8 @@ limactl stop sw
 # VM 狀態
 limactl list
 
-# ssh 進 container 的 sw repo（agent forwarding，可以 git push/pull；nvim 在這裡用）
-ssh -t sw-dev 'cd /work/sw && exec bash -l'
+# ssh 進 container（repo 在 /work/sw；agent forwarding，可以 git push/pull）
+ssh sw-dev
 
 # VSCode Remote-SSH 開 container 裡的 sw repo
 code --remote ssh-remote+sw-dev /work/sw
@@ -80,11 +80,8 @@ uv run lint --rust --check
 
 % etched, strata
 
-# 連到 strata
+# 連到 strata（工作目錄 /project/sw/withers，repo 在 /project/sw/withers/sw）
 ssh <host>
-
-# 連到 strata 並直接進到 sw repo
-ssh -t <host> 'cd /project/sw/withers/sw && exec $SHELL -l'
 
 # VSCode Remote-SSH 開 strata 上的 sw repo
 code --remote ssh-remote+<host> /project/sw/withers/sw
