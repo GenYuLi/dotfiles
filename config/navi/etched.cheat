@@ -1,0 +1,77 @@
+% etched, lima, vm
+
+# 啟動 Lima VM 和 sw container
+limactl start sw && limactl shell sw -- nerdctl start sw
+
+# 停止 VM（釋放 14GB 記憶體，資料保留）
+limactl stop sw
+
+# VM 狀態
+limactl list
+
+# 進 container（含 ssh-agent 轉發，可以 git push/pull）
+limactl shell sw -- bash -lc 'rm -f ~/work/.agent.sock; socat UNIX-LISTEN:$HOME/work/.agent.sock,fork,mode=777 UNIX-CONNECT:$SSH_AUTH_SOCK & nerdctl exec -it -u withers -w /work/sw -e SSH_AUTH_SOCK=/work/.agent.sock sw bash -l; kill %1; rm -f ~/work/.agent.sock'
+
+# 進 container（不需要 git 時）
+limactl shell sw -- nerdctl exec -it -u withers -w /work/sw sw bash -l
+
+# VM 磁碟用量
+limactl shell sw -- df -h /home
+
+# 允許 Rosetta debugserver 使用 ptrace（暫時，VM 重開後恢復）
+limactl shell sw -- sudo sysctl -w kernel.yama.ptrace_scope=0
+
+# 允許 Rosetta debugserver 使用 ptrace（永久）
+limactl shell sw -- bash -c 'echo kernel.yama.ptrace_scope=0 | sudo tee /etc/sysctl.d/10-ptrace.conf && sudo sysctl --system'
+
+% etched, debug, rosetta
+
+# 用 Rosetta debugserver 啟動 x86 程式，等待 debugger 連入（需先放寬 ptrace_scope）
+ROSETTA_DEBUGSERVER_PORT=<port> <program>
+
+# gdb 連到 Rosetta debugserver
+gdb <program> -ex "target remote localhost:<port>"
+
+# lldb 連到 Rosetta debugserver
+lldb <program> -o "gdb-remote <port>"
+
+$ port: echo 1234
+
+% etched, bazel
+
+# 計時執行（bash/zsh 通用，印出 exit code 和秒數）
+t() { local s=$SECONDS; "$@" 2>&1 | tail -5; local rc=${PIPESTATUS[0]:-${pipestatus[1]}}; echo ">>> exit=$rc $((SECONDS-s))s  :: $*"; }
+
+# build ARC 韌體
+bazel build -c opt --config arc //fw/app/sohu/<app>:<app>.all
+
+# 跑韌體：VCS 模擬器 / emulator / chipsim
+bazel run //fw/app/sohu/<app>:<run_target>
+
+# 跑 test（強制實際執行，不用快取結果）
+bazel test --nocache_test_results <target>
+
+# 產生 compile_commands.json（給 clangd）
+bazel-compile-commands <scope>
+
+$ app: ls fw/app/sohu
+$ run_target: printf 'run_chip_sim\nrun\nrun_emu\n'
+$ scope: printf '//fw/...\n//host/...\n//...\n'
+
+% etched, lint
+
+# lint 有改動的檔案
+uv run lint
+
+# clang-tidy（C++ 獨立的 CI 關卡）
+uv run scripts/run_clang_tidy.py origin/master
+
+# Rust fmt + clippy 檢查
+uv run lint --rust --check
+
+% etched, strata
+
+# 連到 strata
+ssh <host>
+
+$ host: printf 'strata5\nstrata4\n'
