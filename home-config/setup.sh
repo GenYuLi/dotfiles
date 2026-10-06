@@ -25,6 +25,7 @@ link() {
 echo "==> Shell config"
 link "$HOME_CONFIG/.zshrc"  "$HOME/.zshrc"
 link "$HOME_CONFIG/.zshenv" "$HOME/.zshenv"
+link "$DOTFILES/config/zsh/.p10k.zsh" "$HOME/.p10k.zsh"
 
 echo "==> XDG config dirs"
 mkdir -p "$HOME/.config"

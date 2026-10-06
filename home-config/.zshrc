@@ -124,7 +124,7 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git wd github rust postgres fzf golang direnv)
+plugins=(git wd rust postgres fzf golang direnv)
 
 fpath=(/usr/share/zsh/site-functions $fpath)
 autoload -Uz compinit
@@ -170,10 +170,10 @@ export NVM_DIR="$HOME/.nvm"
 export PATH="$PATH:/opt/nvim/bin:/usr/local/go/bin"
 #export CC="/usr/bin/cc"
 alias dc=cd
-export MANPAGER='/opt/nvim/bin/nvim +Man!'
-eval $(thefuck --alias)
+export MANPAGER='nvim +Man!'
+(( $+commands[thefuck] )) && eval $(thefuck --alias)
 # pnpm
-export PNPM_HOME="/root/.local/share/pnpm"
+export PNPM_HOME="$HOME/.local/share/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
