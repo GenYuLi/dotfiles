@@ -4,9 +4,9 @@
 # skips anything already at the pinned version. Run setup.sh first so the
 # tmux step can find ~/.config/tmux.
 #
-# nvim plugins and mason tools are not handled here: lazy.nvim installs
-# missing plugins at their lazy-lock.json pins and mason installs its
-# ensure_installed list on the first interactive nvim launch.
+# Ends by installing nvim plugins at their lazy-lock.json pins and waiting
+# for mason to finish its ensure_installed list. Re-running is cheap:
+# everything already present is skipped.
 set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "$0")/.." && pwd)"
@@ -124,5 +124,29 @@ else
   fi
 fi
 
+echo "==> nvim plugins (lazy-lock.json pins) + mason tools"
+if [[ ! -e "$HOME/.config/nvim/init.lua" ]]; then
+  echo "  skip  ~/.config/nvim not linked — run setup.sh first"
+else
+  # tree-sitter must be on PATH for nvim-treesitter to compile parsers.
+  export PATH="$BIN:$PATH"
+  "$BIN/nvim" --headless "+Lazy! restore" +qa >/dev/null 2>&1
+  echo "  ok  plugins restored"
+  # mason installs ensure_installed asynchronously; quitting early aborts it
+  # and leaves half-installed packages that is_installed() reports as done.
+  "$BIN/nvim" --headless -c 'Lazy! load mason.nvim' -c 'lua
+    local spec = require("lazy.core.config").plugins["mason.nvim"]
+    local want = require("lazy.core.plugin").values(spec, "opts", false).ensure_installed or {}
+    local r = require("mason-registry")
+    local ok = vim.wait(900000, function()
+      for _, n in ipairs(want) do
+        local ok_get, p = pcall(r.get_package, n)
+        if not ok_get or p:is_installing() or not p:is_installed() then return false end
+      end
+      return true
+    end, 2000)
+    io.stdout:write(("  %s  mason: %d tools\n"):format(ok and "ok" or "TIMEOUT", #want))' -c qa 2>/dev/null
+fi
+
 echo ""
-echo "Done. Open a new shell; first nvim launch installs plugins and LSP servers."
+echo "Done. Open a new shell (exec zsh)."
