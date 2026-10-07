@@ -49,6 +49,7 @@ link "$DOTFILES/.claude/CLAUDE.md"     "$CLAUDE_DIR/CLAUDE.md"
 link "$DOTFILES/.claude/commands"      "$CLAUDE_DIR/commands"
 link "$DOTFILES/.claude/skills"        "$CLAUDE_DIR/skills"
 link "$DOTFILES/.claude/agents"        "$CLAUDE_DIR/agents"
+link "$DOTFILES/.claude/hooks"         "$CLAUDE_DIR/hooks"
 link "$DOTFILES/.claude/settings.json" "$CLAUDE_DIR/settings.json"
 
 echo "==> ~/.local.zsh"
