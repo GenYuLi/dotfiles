@@ -13,13 +13,24 @@
     "synology-package-dev@pct2-claude-code-marketplace": true,
     "context7@claude-plugins-official": true,
     "github@claude-plugins-official": true,
-    "withers-core@withers-skills": true
+    "withers-core@withers-skills": true,
+    "mattpocock-skills@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "ponytail@ponytail": true
   },
   "extraKnownMarketplaces": {
     "withers-skills": {
       "source": {
         "source": "git",
         "url": "git@github.com:GenYuLi/skills.git"
+      }
+    },
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
       }
     }
   },
