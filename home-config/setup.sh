@@ -38,6 +38,16 @@ link "$DOTFILES/config/nvim" "$HOME/.config/nvim"
 link "$DOTFILES/config/tmux" "$HOME/.config/tmux"
 link "$DOTFILES/config/navi" "$HOME/.config/navi"
 
+echo "==> Low-memory host"
+# Under 16GiB RAM (the sw-dev VM), link the OOM-first rust-analyzer wrapper.
+mem_kb=$(awk '/MemTotal/{print $2}' /proc/meminfo 2>/dev/null || echo 0)
+if (( mem_kb > 0 && mem_kb < 16 * 1024 * 1024 )); then
+    mkdir -p "$HOME/.local/bin"
+    link "$HOME_CONFIG/bin/rust-analyzer-oomfirst" "$HOME/.local/bin/rust-analyzer-oomfirst"
+else
+    echo "  skip  $(( mem_kb / 1048576 ))GiB RAM"
+fi
+
 echo "==> Claude config"
 # Honor CLAUDE_CONFIG_DIR (e.g. /synosrc/claude_config); else default ~/.claude.
 # settings.local.json and gsd-* stay per-machine and are .gitignore'd, so we

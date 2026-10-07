@@ -1,0 +1,9 @@
+#!/bin/sh
+# Linked by setup.sh on low-memory hosts (the sw-dev VM). Under memory
+# pressure the kernel kills rust-analyzer first, not Bazel or sshd; nvim's
+# rustaceanvim also switches to lean settings when this is on PATH.
+echo 1000 > /proc/self/oom_score_adj
+# rustup resolves the toolchain from cwd; callers outside a repo (VSCode's
+# version probe) fall back to the sw checkout's pinned toolchain.
+ra=$(rustup which rust-analyzer 2>/dev/null) || ra=$(cd /work/sw && rustup which rust-analyzer) || exit 1
+exec "$ra" "$@"
