@@ -21,15 +21,10 @@ local function map(mode, lhs, rhs, opt)
   vim.keymap.set(mode, lhs, rhs, opt)
 end
 
-local function yank()
-  if vim.fn.mode() == "n" then
-    vim.cmd("%y")
-  else
-    vim.cmd("normal! y")
-  end
-
+-- system clipboard via the yank script (OSC 52, so it works over SSH/tmux too)
+local function clip(text)
   local script_path = vim.fn.expand("~/.config/dotfiles/config/zsh/autoload/yank")
-  vim.system({ script_path }, { stdin = vim.fn.getreg("0") }, function(result)
+  vim.system({ script_path }, { stdin = text }, function(result)
     vim.schedule(function()
       if result.code == 0 then
         vim.notify("copied to clipboard")
@@ -39,6 +34,15 @@ local function yank()
       end
     end)
   end)
+end
+
+local function yank()
+  if vim.fn.mode() == "n" then
+    vim.cmd("%y")
+  else
+    vim.cmd("normal! y")
+  end
+  clip(vim.fn.getreg("0"))
 end
 
 --}}}
@@ -55,6 +59,9 @@ map("n", "<leader>bb", "<cmd>FzfLua buffers<cr>", "Buffers")
 map("n", "<leader>b>", "<cmd>BufferLineMoveNext<cr>", "Move right")
 map("n", "<leader>b<", "<cmd>BufferLineMovePrev<cr>", "Move left")
 map("n", "<leader>bs", "<cmd>so %|lua vim.notify('Buffer sourced.')<cr>", "Source this buffer")
+map("n", "<leader>bp", function()
+  clip(vim.fn.expand("%:p"))
+end, "Copy file path")
 map("n", "<leader>bz", function()
   require("snacks").zen()
 end, "Zen mode")

@@ -18,6 +18,7 @@ M.opts = {
     "pyright",
     "rust-analyzer",
     "ruff",
+    "starpls", -- bazel BUILD/.bzl: goto-def on labels/targets/load()
     "texlab",
     "typescript-language-server",
 
