@@ -12,6 +12,7 @@ M.opts = {
     { "<leader>", group = "Leader" },
     { "<leader>c", group = "Compile" },
     { "<leader>b", group = "Buffer" },
+    { "<leader>B", group = "Bazel" },
     { "<leader>p", group = "Plugin" },
     { "<leader>f", group = "Find" },
     { "<leader>l", group = "LSP" },
