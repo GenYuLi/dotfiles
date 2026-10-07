@@ -93,6 +93,9 @@
 
   programs.gh = {
     enable = true;
+    # home-manager defaults this to https; our remotes are SSH, and gh can't
+    # write it back itself because config.yml is a read-only store symlink.
+    settings.git_protocol = "ssh";
     extensions = with pkgs; [
       gh-dash
     ];

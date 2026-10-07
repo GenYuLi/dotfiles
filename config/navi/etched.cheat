@@ -6,7 +6,7 @@ limactl start sw && limactl shell sw -- nerdctl start sw && limactl shell sw -- 
 # 只重新啟動 container 裡的 sshd（ssh sw-dev 連不上時）
 limactl shell sw -- nerdctl exec sw bash -c 'pkill -x sshd; /usr/sbin/sshd'
 
-# 停止 VM（釋放 14GB 記憶體，資料保留）
+# 停止 VM（釋放 10GB 記憶體，資料保留）
 limactl stop sw
 
 # VM 狀態

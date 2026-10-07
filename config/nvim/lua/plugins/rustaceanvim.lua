@@ -8,8 +8,14 @@ return {
   version = "^7",
   lazy = false, -- already lazy via filetype
   init = function()
+    -- Low-memory hosts (the sw-dev VM: 10GiB, Rosetta) put this wrapper on
+    -- PATH; it raises oom_score_adj so the kernel kills rust-analyzer before
+    -- Bazel or sshd. There a ~300-crate workspace indexes to 7GB+, so skip
+    -- cache priming and keep flycheck to the current package.
+    local lowmem = vim.fn.exepath("rust-analyzer-oomfirst")
     vim.g.rustaceanvim = {
       server = {
+        cmd = lowmem ~= "" and { lowmem } or nil,
         -- Scope `check.workspace` per project. The leetcode storage is one
         -- big Cargo workspace holding every solved problem as a member, so
         -- a workspace-wide check on save would re-check the whole backlog.
@@ -22,7 +28,12 @@ return {
           local rs = default_settings["rust-analyzer"]
           local leet_root = vim.fs.joinpath(vim.fn.stdpath("data"), "leetcode")
           rs.check = rs.check or {}
-          rs.check.workspace = not (project_root and vim.startswith(project_root, leet_root))
+          rs.check.workspace = lowmem == "" and not (project_root and vim.startswith(project_root, leet_root))
+          if lowmem ~= "" then
+            rs.cachePriming = { enable = false }
+            rs.numThreads = 2
+            rs.lru = { capacity = 64 }
+          end
           return default_settings
         end,
         default_settings = {
