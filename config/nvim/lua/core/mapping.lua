@@ -23,7 +23,9 @@ end
 
 -- system clipboard via the yank script (OSC 52, so it works over SSH/tmux too)
 local function clip(text)
-  local script_path = vim.fn.expand("~/.config/dotfiles/config/zsh/autoload/yank")
+  -- resolve() follows ~/.config/nvim back into the repo under both nix and the
+  -- no-nix strata setup; ~/.config/dotfiles only exists under nix.
+  local script_path = vim.fs.normalize(vim.fn.resolve(vim.fn.stdpath("config")) .. "/../zsh/autoload/yank")
   vim.system({ script_path }, { stdin = text }, function(result)
     vim.schedule(function()
       if result.code == 0 then
