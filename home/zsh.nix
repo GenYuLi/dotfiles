@@ -136,6 +136,10 @@ in
     })
     (pkgs.lib.mkIf pkgs.stdenv.isDarwin {
       ldd = "otool -L";
+      # keep running with the lid closed (long agent runs, SSH in from phone);
+      # don't leave it on — a closed laptop in a bag then never sleeps
+      nosleep = "sudo pmset -a disablesleep 1 && echo 'lid-close sleep disabled; run cansleep when done'";
+      cansleep = "sudo pmset -a disablesleep 0";
     })
   ];
 
