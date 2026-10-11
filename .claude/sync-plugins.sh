@@ -12,6 +12,7 @@ PLUGINS=(
   superpowers        # process framework: brainstorm/plan/TDD/review
   mattpocock-skills  # lightweight single-purpose skills: /tdd /grill-me /diagnosing-bugs ...
   skill-creator
+  frontend-design    # distinctive UI design guidance for new pages/artifacts (typography, palette, layout)
   context7
   github
   code-review
