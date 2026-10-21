@@ -76,6 +76,17 @@ if [[ "$(uname -m)" == aarch64 && ! -e "$BIN/aarch64-linux-gnu-gcc" ]]; then
   ln -sfn "$(command -v gcc)" "$BIN/aarch64-linux-gnu-gcc"
   echo "  linked  aarch64-linux-gnu-gcc → gcc (tree-sitter parser builds)"
 fi
+# mason has no linux-aarch64 starpls; take the GitHub release directly.
+if [[ "$(uname -m)" == aarch64 ]]; then
+  v=0.1.22
+  if "$BIN/starpls" version 2>/dev/null | grep -qF "$v"; then
+    echo "  ok  starpls $v"
+  else
+    curl -fsSL "$GH/withered-magic/starpls/releases/download/v$v/starpls-linux-aarch64" -o "$BIN/starpls"
+    chmod +x "$BIN/starpls"
+    echo "  installed  starpls $v"
+  fi
+fi
 
 echo "==> thefuck (pip --user)"
 if have thefuck 3.32; then

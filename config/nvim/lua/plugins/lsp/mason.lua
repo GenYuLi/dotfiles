@@ -45,11 +45,21 @@ M.config = function(_, opts)
     end, 100)
   end)
 
+  -- mason has no linux-aarch64 builds for these (the OrbStack sw-dev VM).
+  -- clangd comes from the distro (clang-tools-extra), starpls from its GitHub
+  -- release (home-config/install-tools.sh); selene is simply skipped.
+  local unsupported = {}
+  if vim.uv.os_uname().machine == "aarch64" then
+    unsupported = { clangd = true, starpls = true, selene = true }
+  end
+
   registry.refresh(function()
     for _, tool in ipairs(opts.ensure_installed) do
-      local p = registry.get_package(tool)
-      if not p:is_installed() then
-        p:install()
+      if not unsupported[tool] then
+        local p = registry.get_package(tool)
+        if not p:is_installed() then
+          p:install()
+        end
       end
     end
   end)
