@@ -20,6 +20,7 @@ PLUGINS=(
   rust-analyzer-lsp
   pyright-lsp
   clangd-lsp
+  playwright         # browser MCP; headless chromium via PLAYWRIGHT_MCP_* in ~/.local.zsh
 )
 
 for p in "${PLUGINS[@]}"; do
