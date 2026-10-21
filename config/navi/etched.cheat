@@ -1,37 +1,36 @@
-% etched, lima, vm
+% etched, orbstack, vm
 
-# 啟動 Lima VM、sw container 和 container 裡的 sshd（ssh sw-dev 要用）
-limactl start sw && limactl shell sw -- nerdctl start sw && limactl shell sw -- nerdctl exec sw /usr/sbin/sshd
+# 開 VM（OrbStack 的 arm64 AlmaLinux 9，repo 在 ~/sw）
+orb start dev
 
-# 只重新啟動 container 裡的 sshd（ssh sw-dev 連不上時）
-limactl shell sw -- nerdctl exec sw bash -c 'pkill -x sshd; /usr/sbin/sshd'
-
-# 停止 VM（釋放 10GB 記憶體，資料保留）
-limactl stop sw
+# 停止 VM（記憶體會還給 Mac，資料保留）
+orb stop dev
 
 # VM 狀態
-limactl list
+orb list
 
-# ssh 進 container（repo 在 /work/sw；agent forwarding，可以 git push/pull）
+# ssh 進 VM（OrbStack 自動轉發 Mac 的 ssh-agent，可以 git push/pull）
 ssh sw-dev
 
-# VSCode Remote-SSH 開 container 裡的 sw repo
-code --remote ssh-remote+sw-dev /work/sw
+# 不經 ssh 直接進 VM
+orb -m dev
 
-# 進 container（不經 ssh，含 ssh-agent 轉發）
-limactl shell sw -- bash -lc 'rm -f ~/work/.agent.sock; socat UNIX-LISTEN:$HOME/work/.agent.sock,fork,mode=777 UNIX-CONNECT:$SSH_AUTH_SOCK & nerdctl exec -it -u withers -w /work/sw -e SSH_AUTH_SOCK=/work/.agent.sock sw bash -l; kill %1; rm -f ~/work/.agent.sock'
+# VSCode Remote-SSH 開 VM 裡的 sw repo
+code --remote ssh-remote+sw-dev /home/withers/sw
 
-# 進 container（不需要 git 時）
-limactl shell sw -- nerdctl exec -it -u withers -w /work/sw sw bash -l
+# VM 磁碟和記憶體用量
+orb -m dev bash -c 'df -h / | tail -1; free -g | head -2'
 
-# VM 磁碟用量
-limactl shell sw -- df -h /home
+# 改 VM 記憶體上限（MiB；OrbStack 會彈性歸還沒用到的）
+orb config set memory_mib <memory_mib>
 
 # 允許 Rosetta debugserver 使用 ptrace（暫時，VM 重開後恢復）
-limactl shell sw -- sudo sysctl -w kernel.yama.ptrace_scope=0
+orb -m dev sudo sysctl -w kernel.yama.ptrace_scope=0
 
-# 允許 Rosetta debugserver 使用 ptrace（永久）
-limactl shell sw -- bash -c 'echo kernel.yama.ptrace_scope=0 | sudo tee /etc/sysctl.d/10-ptrace.conf && sudo sysctl --system'
+# 重新跑 Francis 的 setup script（可重跑，做過的步驟會跳過；--local 裝 x86 loader 和 L10 patch）
+ssh sw-dev 'bash /mnt/mac/Users/withers/arm64-vm/setup_vm_noghcr.sh --local'
+
+$ memory_mib: printf '17408\n12288\n'
 
 % etched, debug, rosetta
 
@@ -60,12 +59,28 @@ bazel run //fw/app/sohu/<app>:<run_target>
 # 跑 test（強制實際執行，不用快取結果）
 bazel test --nocache_test_results <target>
 
+# 遠端 build（RBE；只下載你點名的產物。VM 預設 --config=developer）
+bazel build --remote_download_minimal <target>
+
+# 與 RBE 賽跑：每個 action 同時在遠端和 VM 跑，先完成的贏；RBE 的結果會填進 disk cache
+bazel build --config=race <target>
+
+# 完全本機 x86_64 build（Rosetta；要先跑過 setup --local）
+bazel build --config=local <target>
+
+# 本機跑 x86_64 產物（--platforms 要蓋掉 user.bazelrc 的 run --platforms=@platforms//host）
+bazel run --config=local --platforms=//bzl/platforms:linux_x86_64_glibc234 <target> -- <args>
+
+# 印出 BuildBuddy 的產物下載網址（上一次 build 的 /tmp/bep.json）
+~/bin/bb-url.nu
+
 # 產生 compile_commands.json（給 clangd）
 bazel-compile-commands <scope>
 
 $ app: ls fw/app/sohu
 $ run_target: printf 'run_chip_sim\nrun\nrun_emu\n'
 $ scope: printf '//fw/...\n//host/...\n//...\n'
+$ target: printf '//host/system_test:L10_test_package_image_tarball\n//fw/app/sohu/simple_example:simple_example.all\n'
 
 % etched, lint
 
@@ -77,6 +92,20 @@ uv run scripts/run_clang_tidy.py origin/master
 
 # Rust fmt + clippy 檢查
 uv run lint --rust --check
+
+% etched, l10, rack
+
+# 開到 RMS 的 tun0 隧道（192.168.96.0/24 經由 VM；要先在 ~/.ssh/config 有 <rms>）
+~/bin/tunnel_up.fish <rms>
+
+# 關掉隧道（換 rack 之前）
+~/bin/tunnel_up.fish down
+
+# 在 VM 用 podman 對 rack 跑 L10（-b 先 build 並載入 image；在 ~/sw 裡執行）
+~/bin/run_l10.nu <server> <rack> -t <suite> -b
+
+$ rms: printf 'rms1\n'
+$ suite: printf 'L10_FAT\nL10_SFT\nL10_RIN\n'
 
 % etched, strata
 
