@@ -17,6 +17,13 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP:?}"' EXIT
 mkdir -p "$BIN" "$OPT"
 
+# Release asset names per CPU architecture (strata: x86_64; OrbStack VM: aarch64).
+case "$(uname -m)" in
+  x86_64)  NVIM_ARCH=x86_64; GO_ARCH=amd64; RUST_ARCH=x86_64; TS_ARCH=x64;   NAVI_LIBC=musl ;;
+  aarch64) NVIM_ARCH=arm64;  GO_ARCH=arm64; RUST_ARCH=aarch64; TS_ARCH=arm64; NAVI_LIBC=gnu ;;  # navi has no aarch64 musl build
+  *) echo "unsupported arch: $(uname -m)" >&2; exit 1 ;;
+esac
+
 # have <cmd> <version>: true if <cmd> in $BIN reports <version>
 have() { "$BIN/$1" --version 2>&1 | grep -qF "$2"; }
 
@@ -49,20 +56,20 @@ v=0.12.5
 if have nvim "v$v"; then
   echo "  ok  nvim $v"
 else
-  curl -fsSL "$GH/neovim/neovim/releases/download/v$v/nvim-linux-x86_64.tar.gz" -o "$TMP/nvim.tgz"
-  rm -rf "${OPT:?}/nvim-linux-x86_64"
+  curl -fsSL "$GH/neovim/neovim/releases/download/v$v/nvim-linux-$NVIM_ARCH.tar.gz" -o "$TMP/nvim.tgz"
+  rm -rf "${OPT:?}/nvim-linux-$NVIM_ARCH"
   tar -xzf "$TMP/nvim.tgz" -C "$OPT"
-  ln -sfn "$OPT/nvim-linux-x86_64/bin/nvim" "$BIN/nvim"
+  ln -sfn "$OPT/nvim-linux-$NVIM_ARCH/bin/nvim" "$BIN/nvim"
   echo "  installed  nvim $v"
 fi
-v=0.74.4;  tool fzf    $v "$GH/junegunn/fzf/releases/download/v$v/fzf-$v-linux_amd64.tar.gz"
-v=2.24.0;  tool navi   $v "$GH/denisidoro/navi/releases/download/v$v/navi-v$v-x86_64-unknown-linux-musl.tar.gz"
-v=5.7.4;   tool sk     $v "$GH/skim-rs/skim/releases/download/v$v/skim-x86_64-unknown-linux-musl.tar.xz"
-v=0.26.1;  tool bat    $v "$GH/sharkdp/bat/releases/download/v$v/bat-v$v-x86_64-unknown-linux-musl.tar.gz"
-v=2.37.1;  tool direnv $v "$GH/direnv/direnv/releases/download/v$v/direnv.linux-amd64"
-v=0.10.0;  tool zoxide $v "$GH/ajeetdsouza/zoxide/releases/download/v$v/zoxide-$v-x86_64-unknown-linux-musl.tar.gz"
+v=0.74.4;  tool fzf    $v "$GH/junegunn/fzf/releases/download/v$v/fzf-$v-linux_$GO_ARCH.tar.gz"
+v=2.24.0;  tool navi   $v "$GH/denisidoro/navi/releases/download/v$v/navi-v$v-$RUST_ARCH-unknown-linux-$NAVI_LIBC.tar.gz"
+v=5.7.4;   tool sk     $v "$GH/skim-rs/skim/releases/download/v$v/skim-$RUST_ARCH-unknown-linux-musl.tar.xz"
+v=0.26.1;  tool bat    $v "$GH/sharkdp/bat/releases/download/v$v/bat-v$v-$RUST_ARCH-unknown-linux-musl.tar.gz"
+v=2.37.1;  tool direnv $v "$GH/direnv/direnv/releases/download/v$v/direnv.linux-$GO_ARCH"
+v=0.10.0;  tool zoxide $v "$GH/ajeetdsouza/zoxide/releases/download/v$v/zoxide-$v-$RUST_ARCH-unknown-linux-musl.tar.gz"
 # 0.26+ prebuilt binaries need glibc >= 2.35; 0.25.10 is the newest that runs on RHEL 9.
-v=0.25.10; tool tree-sitter $v "$GH/tree-sitter/tree-sitter/releases/download/v$v/tree-sitter-linux-x64.gz"
+v=0.25.10; tool tree-sitter $v "$GH/tree-sitter/tree-sitter/releases/download/v$v/tree-sitter-linux-$TS_ARCH.gz"
 
 echo "==> thefuck (pip --user)"
 if have thefuck 3.32; then
@@ -118,6 +125,8 @@ else
   v="$(sed -n 's/^version: *//p' "$F/shard.yml")"
   if [[ "$("$F/bin/tmux-fingers" version 2>/dev/null)" == "$v" ]]; then
     echo "  ok  tmux-fingers binary $v"
+  elif [[ "$(uname -m)" != x86_64 ]]; then
+    echo "  skip  tmux-fingers binary: no linux-$(uname -m) release"
   else
     mkdir -p "$F/bin"
     curl -fsSL "$GH/Morantron/tmux-fingers/releases/download/$v/tmux-fingers-$v-linux-x86_64" -o "$F/bin/tmux-fingers"
