@@ -70,6 +70,12 @@ v=2.37.1;  tool direnv $v "$GH/direnv/direnv/releases/download/v$v/direnv.linux-
 v=0.10.0;  tool zoxide $v "$GH/ajeetdsouza/zoxide/releases/download/v$v/zoxide-$v-$RUST_ARCH-unknown-linux-musl.tar.gz"
 # 0.26+ prebuilt binaries need glibc >= 2.35; 0.25.10 is the newest that runs on RHEL 9.
 v=0.25.10; tool tree-sitter $v "$GH/tree-sitter/tree-sitter/releases/download/v$v/tree-sitter-linux-$TS_ARCH.gz"
+# On aarch64 the tree-sitter CLI invokes the target-prefixed compiler name
+# (aarch64-linux-gnu-gcc), which Alma/RHEL do not ship; point it at gcc.
+if [[ "$(uname -m)" == aarch64 && ! -e "$BIN/aarch64-linux-gnu-gcc" ]]; then
+  ln -sfn "$(command -v gcc)" "$BIN/aarch64-linux-gnu-gcc"
+  echo "  linked  aarch64-linux-gnu-gcc → gcc (tree-sitter parser builds)"
+fi
 
 echo "==> thefuck (pip --user)"
 if have thefuck 3.32; then
