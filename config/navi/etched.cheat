@@ -53,8 +53,11 @@ t() { local s=$SECONDS; "$@" 2>&1 | tail -5; local rc=${PIPESTATUS[0]:-${pipesta
 # build ARC 韌體
 bazel build -c opt --config arc //fw/app/sohu/<app>:<app>.all
 
-# 跑韌體：VCS 模擬器 / emulator / chipsim
+# 跑韌體：VCS 模擬器 / emulator / chipsim（VM 上 chipsim 是原生 arm64；~/.bazelrc 已設 CcConfigureMakeRule=local）
 bazel run //fw/app/sohu/<app>:<run_target>
+
+# chipsim 改用 x86_64 版在 Rosetta 下跑（跟 CI/strata 同一份 binary、共用 remote cache；模擬比原生慢）
+bazel run --platforms=//bzl/platforms:linux_x86_64_glibc234 //fw/app/sohu/<app>:run_chip_sim
 
 # 跑 test（強制實際執行，不用快取結果）
 bazel test --nocache_test_results <target>
