@@ -88,7 +88,7 @@ function M.config()
         [vim.diagnostic.severity.HINT] = "DiagnosticSignHint",
       },
     },
-    update_in_insert = true,
+    update_in_insert = false,
     underline = true,
     severity_sort = true,
     float = {
@@ -106,10 +106,12 @@ function M.config()
 
   vim.api.nvim_create_user_command("LspRestart", function()
     local bufnr = vim.api.nvim_get_current_buf()
-    for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr })) do
+    for _, client in ipairs(vim.lsp.get_clients { bufnr = bufnr }) do
       client:stop()
     end
-    vim.defer_fn(function() vim.cmd("edit") end, 100)
+    vim.defer_fn(function()
+      vim.cmd("edit")
+    end, 100)
   end, { desc = "Restart LSP clients for current buffer" })
 end
 
