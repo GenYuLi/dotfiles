@@ -35,12 +35,24 @@ M.opts = {
     },
   },
   presets = {
-    command_palette = true,       -- position the cmdline and popupmenu together
+    command_palette = true, -- position the cmdline and popupmenu together
     long_message_to_split = true, -- long messages will be sent to a split
-    inc_rename = true,            -- enables an input dialog for inc-rename.nvim
-    lsp_doc_border = true,        -- add a border to hover docs and signature help
+    inc_rename = true, -- enables an input dialog for inc-rename.nvim
+    lsp_doc_border = true, -- add a border to hover docs and signature help
   },
   routes = {
+    {
+      -- pyright re-analyzes on every keystroke; its "Analyzing..." progress
+      -- popup is pure noise. Other servers' progress (clangd indexing) stays.
+      filter = {
+        event = "lsp",
+        kind = "progress",
+        cond = function(message)
+          return vim.tbl_get(message.opts, "progress", "client") == "pyright"
+        end,
+      },
+      opts = { skip = true },
+    },
     {
       filter = {
         event = "msg_show",
