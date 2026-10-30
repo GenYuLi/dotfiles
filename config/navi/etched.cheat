@@ -30,6 +30,9 @@ orb -m dev sudo sysctl -w kernel.yama.ptrace_scope=0
 # 重新跑 Francis 的 setup script（可重跑，做過的步驟會跳過；--local 裝 x86 loader 和 L10 patch）
 ssh sw-dev 'bash /mnt/mac/Users/withers/arm64-vm/setup_vm_noghcr.sh --local'
 
+# VM 裡拉 master：六個 patch 檔是 skip-worktree，`git pull` 會拒絕；這個 wrapper 會 stash → pull → 重套 patch
+git vmpull
+
 $ memory_mib: printf '17408\n12288\n'
 
 % etched, debug, rosetta
