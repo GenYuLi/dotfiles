@@ -315,6 +315,7 @@ in
   xdg.enable = true;
 
   home.file."tools".source = symlinkDotfiles "config/tools";
+  home.file.".local/bin/txtpbcheck".source = symlinkDotfiles "config/tools/txtpbcheck";
   home.file.".claude/CLAUDE.md".source = symlinkDotfiles ".claude/CLAUDE.md";
   home.file.".claude/skills".source = symlinkDotfiles ".claude/skills";
   home.file.".claude/agents".source = symlinkDotfiles ".claude/agents";

@@ -23,6 +23,7 @@ return {
     opts = {
       formatters_by_ft = {
         lua = { "stylua", lsp_format = "never" },
+        pbtxt = { "txtpbfmt" },
         sh = { "shfmt" },
         sql = { "sqlfluff" },
       },
