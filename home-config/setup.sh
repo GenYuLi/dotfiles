@@ -38,6 +38,11 @@ link "$DOTFILES/config/nvim" "$HOME/.config/nvim"
 link "$DOTFILES/config/tmux" "$HOME/.config/tmux"
 link "$DOTFILES/config/navi" "$HOME/.config/navi"
 
+echo "==> Tools"
+mkdir -p "$HOME/.local/bin"
+# .txtpb validator (protoc --encode against the file header); see config/tools.
+link "$DOTFILES/config/tools/txtpbcheck" "$HOME/.local/bin/txtpbcheck"
+
 echo "==> Low-memory host"
 # Under 16GiB RAM (the sw-dev VM), link the OOM-first rust-analyzer wrapper.
 mem_kb=$(awk '/MemTotal/{print $2}' /proc/meminfo 2>/dev/null || echo 0)
