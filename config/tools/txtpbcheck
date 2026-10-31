@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# txtpbcheck — validate .txtpb files against the schema named in their header.
+#
+# A text proto carries no schema of its own; the Google convention is a header
+#   # proto-file: path/to/foo.proto      (relative to the repo root)
+#   # proto-message: Bar                 (short or fully qualified)
+# Each file is fed through `protoc --encode` of that message, which fails with
+# line:col on unknown fields, bad values and syntax errors. There is no LSP for
+# text protos, so this is the closest thing to diagnostics.
+#
+# Output: one "FILE:LINE:COL: message" per problem (nvim ftplugin and the Cursor
+# task parse that). Exit 1 if any file failed, 2 if protoc is missing.
+# Env: PROTOC overrides the protoc binary (default: PATH, then ~/.local/bin).
+set -uo pipefail
+
+protoc=${PROTOC:-$(command -v protoc || echo "$HOME/.local/bin/protoc")}
+[ -x "$protoc" ] || { echo "txtpbcheck: protoc not found (set PROTOC)" >&2; exit 2; }
+# google/protobuf/*.proto ship next to the protoc release binary.
+wkt=$(dirname "$(dirname "$(readlink -f "$protoc")")")/include
+
+rc=0
+for f in "$@"; do
+  root=$(git -C "$(dirname "$f")" rev-parse --show-toplevel 2>/dev/null) || root=$PWD
+  pf=$(sed -n 's/^# *proto-file: *//p' "$f" | head -1 | tr -d '[:space:]')
+  pm=$(sed -n 's/^# *proto-message: *//p' "$f" | head -1 | tr -d '[:space:]')
+  if [ -z "$pf" ] || [ -z "$pm" ]; then
+    echo "$f:1:1: warning: no '# proto-file:' / '# proto-message:' header, cannot validate"
+    continue
+  fi
+  if [ ! -f "$root/$pf" ]; then
+    echo "$f:1:1: proto-file not found: $root/$pf"
+    rc=1
+    continue
+  fi
+  case $pm in
+    *.*) full=$pm ;;
+    *)
+      pkg=$(sed -n 's/^package *\([^;]*\);.*/\1/p' "$root/$pf" | head -1 | tr -d '[:space:]')
+      full=${pkg:+$pkg.}$pm
+      ;;
+  esac
+  if ! err=$("$protoc" -I "$root" -I "$wkt" --encode="$full" "$pf" <"$f" 2>&1 >/dev/null); then
+    rc=1
+    printf '%s\n' "$err" | grep -v '^Failed to parse input\.$' |
+      sed "s|^input:|$f:|; s|^\([^:]*\.proto\):|$root/\1:|"
+  fi
+done
+exit $rc

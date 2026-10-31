@@ -122,3 +122,17 @@ ssh <host>
 code --remote ssh-remote+<host> /project/sw/withers/sw
 
 $ host: printf 'strata5\nstrata4\n'
+
+% etched, txtpb, textproto, proto
+
+# 檢查 .txtpb 是否符合檔頭 `# proto-file` / `# proto-message` 指的 schema（沒有 LSP，這是最接近 diagnostics 的東西；nvim 存檔會自動跑，Cursor 用 task「txtpbcheck」）
+txtpbcheck <txtpb_files>
+
+# 檢查整個 repo 的 .txtpb（約 1 分鐘；沒檔頭的會印 warning）
+git ls-files '*.txtpb' | xargs txtpbcheck
+
+# 用 txtpbfmt 格式化（repo 既有檔案多半不是 txtpbfmt-clean，`msb:21` 會變 `msb: 21`，只格式化自己改的檔）
+txtpbfmt -dry_run <txtpb_file> | diff <txtpb_file> -
+
+$ txtpb_file: git ls-files '*.txtpb'
+$ txtpb_files: git ls-files '*.txtpb' --- --multi
