@@ -24,7 +24,9 @@ return {
     on_dir(root or vim.uv.cwd())
   end,
   cmd = {
-    "clangd",
+    -- Low-memory hosts (the sw-dev VM) link a wrapper that caps the
+    -- background indexer at 6 workers; see dotfiles home-config/bin/clangd-lean.
+    vim.fn.executable("clangd-lean") == 1 and "clangd-lean" or "clangd",
     "--background-index",
     "--background-index-priority=low",
     "--clang-tidy",
