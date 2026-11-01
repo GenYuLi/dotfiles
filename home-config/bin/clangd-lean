@@ -1,0 +1,8 @@
+#!/bin/sh
+# Linked by setup.sh on low-memory hosts (the sw-dev VM). clangd's background
+# indexer uses one worker per core (14 on the VM) and a full re-index after an
+# editor restart pins every core for 10+ minutes with the index taking 5-6 GB.
+# Cap the workers and drop the indexer's thread priority; the index is
+# persisted under <repo>/.cache/clangd, so a slower pass costs nothing later.
+clangd=$(command -v clangd) || exit 1
+exec nice -n 10 "$clangd" -j=6 --background-index-priority=low "$@"

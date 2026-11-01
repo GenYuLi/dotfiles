@@ -44,11 +44,13 @@ mkdir -p "$HOME/.local/bin"
 link "$DOTFILES/config/tools/txtpbcheck" "$HOME/.local/bin/txtpbcheck"
 
 echo "==> Low-memory host"
-# Under 16GiB RAM (the sw-dev VM), link the OOM-first rust-analyzer wrapper.
+# Under 24GiB RAM (the sw-dev VM has 17), link the OOM-first rust-analyzer
+# wrapper and the capped clangd wrapper; strata boxes have hundreds of GB.
 mem_kb=$(awk '/MemTotal/{print $2}' /proc/meminfo 2>/dev/null || echo 0)
-if (( mem_kb > 0 && mem_kb < 16 * 1024 * 1024 )); then
+if (( mem_kb > 0 && mem_kb < 24 * 1024 * 1024 )); then
     mkdir -p "$HOME/.local/bin"
     link "$HOME_CONFIG/bin/rust-analyzer-oomfirst" "$HOME/.local/bin/rust-analyzer-oomfirst"
+    link "$HOME_CONFIG/bin/clangd-lean" "$HOME/.local/bin/clangd-lean"
 else
     echo "  skip  $(( mem_kb / 1048576 ))GiB RAM"
 fi
